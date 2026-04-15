@@ -1,0 +1,62 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#root {
+  width: 100%;
+}
+
+/* Custom Node Styles */
+.custom-node .custom-handle {
+  width: 10px;
+  height: 10px;
+  background: #3b82f6;
+  border: 1px solid white;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.custom-node:hover .custom-handle {
+  opacity: 1;
+}
+
+.custom-handle::before,
+.custom-handle::after {
+  content: '';
+  position: absolute;
+  background-color: white;
+}
+
+/* Vertical bar of plus */
+.custom-handle::before {
+  width: 1.5px;
+  height: 6px;
+}
+
+/* Horizontal bar of plus */
+.custom-handle::after {
+  width: 6px;
+  height: 1.5px;
+}
