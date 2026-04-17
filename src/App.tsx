@@ -7,6 +7,7 @@ import ReactFlow, {
   Panel,
   addEdge,
   ConnectionMode,
+  MarkerType,
 } from 'reactflow';
 import type {
   OnNodesChange,
@@ -37,7 +38,10 @@ const edgeTypes: EdgeTypes = {
 
 const defaultEdgeOptions = {
   type: 'floating',
-  markerEnd: 'url(#arrowhead)',
+  markerEnd: {
+    type: MarkerType.ArrowClosed,
+    color: '#333',
+  },
 };
 
 const initialText = `flowchart TD
@@ -292,21 +296,6 @@ function App() {
           connectionMode={ConnectionMode.Loose}
           fitView
         >
-          <svg style={{ position: 'absolute', top: 0, left: 0, width: 0, height: 0 }}>
-            <defs>
-              <marker
-                id="arrowhead"
-                viewBox="0 0 10 10"
-                refX="10"
-                refY="5"
-                markerWidth="6"
-                markerHeight="6"
-                orient="auto-start-reverse"
-              >
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#333" />
-              </marker>
-            </defs>
-          </svg>
           <Background />
           <Controls />
           
