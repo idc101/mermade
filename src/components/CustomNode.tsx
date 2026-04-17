@@ -1,10 +1,12 @@
 import { memo } from 'react';
 import { Handle, Position } from 'reactflow';
 import type { NodeProps } from 'reactflow';
-import * as Icons from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+import { Icon as IconifyIcon } from '@iconify/react';
 
 const CustomNode = ({ data, selected }: NodeProps) => {
-  const Icon = (Icons as any)[data.icon] || Icons.Square;
+  const isIconify = data.icon && data.icon.includes(':');
+  const LucideIcon = !isIconify ? ((LucideIcons as any)[data.icon] || LucideIcons.Square) : null;
 
   return (
     <div
@@ -46,7 +48,11 @@ const CustomNode = ({ data, selected }: NodeProps) => {
         className="custom-handle"
       />
       
-      <Icon size={18} />
+      {isIconify ? (
+        <IconifyIcon icon={data.icon} width={18} height={18} />
+      ) : (
+        <LucideIcon size={18} />
+      )}
       <div className="font-bold text-sm text-black">{data.label}</div>
     </div>
   );

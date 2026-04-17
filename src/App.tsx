@@ -19,6 +19,7 @@ import type {
   Connection,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import { Icon as IconifyIcon } from '@iconify/react';
 
 import CustomNode from './components/CustomNode';
 import FloatingEdge from './components/FloatingEdge';
@@ -132,11 +133,31 @@ function App() {
 
   const syncToText = useCallback((newNodes: Node[], newEdges: Edge[]) => {
     isInternalUpdate.current = true;
-    const mermaidLines = text.split('%% --- arrows-config --- %%')[0].trim().split('\n');
+    const parts = text.split('%% --- arrows-config --- %%');
+    const semanticPart = parts[0];
+    const mermaidLines = semanticPart.trim().split('\n');
     const header = mermaidLines[0] || 'flowchart TD';
     
     // Reconstruct semantic part
-    const nodeDefs = newNodes.map(n => `  ${n.id}[${n.data.label || n.id}]`).join('\n');
+    const nodeDefs = newNodes.map(n => {
+      const iconTag = n.data.icon ? `<icon icon="${n.data.icon}" /> ` : '';
+      const label = n.data.label || n.id;
+      const fullLabel = `${iconTag}${label}`.trim();
+      
+      let leftBracket = '[';
+      let rightBracket = ']';
+      
+      if (n.data.shape === 'database') {
+        leftBracket = '[(';
+        rightBracket = ')]';
+      } else if (n.data.shape === 'diamond') {
+        leftBracket = '{';
+        rightBracket = '}';
+      }
+      
+      return `  ${n.id}${leftBracket}${fullLabel}${rightBracket}`;
+    }).join('\n');
+    
     const edgeDefs = newEdges.map(e => `  ${e.source} -->${e.label ? `|${e.label}|` : ''} ${e.target}`).join('\n');
     
     const newMermaidPart = `${header}\n${nodeDefs}\n\n${edgeDefs}`;
@@ -149,7 +170,8 @@ function App() {
       setNodes((nds) => {
         const nextNodes = applyNodeChanges(changes, nds);
         isInternalUpdate.current = true;
-        const newText = serializeMermaid(nextNodes, edges, text.split('%% --- arrows-config --- %%')[0]);
+        const semanticPart = text.split('%% --- arrows-config --- %%')[0];
+        const newText = serializeMermaid(nextNodes, edges, semanticPart);
         setText(newText);
         return nextNodes;
       });
@@ -210,8 +232,36 @@ function App() {
     [nodes, syncToText]
   );
 
+  const [iconSearch, setIconSearch] = useState('');
+  const [iconResults, setIconResults] = useState<string[]>([]);
+  const [isSearchingIcons, setIsSearchingIcons] = useState(false);
+
+  useEffect(() => {
+    if (!iconSearch || iconSearch.length < 2) {
+      setIconResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearchingIcons(true);
+      try {
+        const response = await fetch(`https://api.iconify.design/search?query=${iconSearch}&limit=32`);
+        const data = await response.json();
+        setIconResults(data.icons || []);
+      } catch (e) {
+        console.error('Failed to search icons:', e);
+      } finally {
+        setIsSearchingIcons(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [iconSearch]);
+
   const onSelectionChange = useCallback(({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) => {
     setSelectedElement(nodes[0] || edges[0] || null);
+    setIconSearch('');
+    setIconResults([]);
   }, []);
 
   const updateSelectedNode = (data: any) => {
@@ -309,7 +359,7 @@ function App() {
             const currentNode = nodes.find(n => n.id === selectedElement.id);
             if (!currentNode) return null;
             return (
-              <Panel position="top-right" style={{ background: '#fff', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }}>
+              <Panel position="top-right" style={{ background: '#fff', padding: '10px', border: '1px solid #ccc', borderRadius: '4px', width: '200px' }}>
                 <div style={{ marginBottom: '10px', fontWeight: 'bold' }}>Node Styles</div>
                 <div style={{ display: 'flex', gap: '5px', flexDirection: 'column' }}>
                   <label>Label:</label>
@@ -324,19 +374,50 @@ function App() {
                     type="color"
                     value={currentNode.data.color || '#ffffff'}
                     onChange={(e) => updateSelectedNode({ color: e.target.value })}
+                    style={{ marginBottom: '5px' }}
                   />
-                  <label>Icon:</label>
-                  <select
-                    value={currentNode.data.icon || 'Square'}
-                    onChange={(e) => updateSelectedNode({ icon: e.target.value })}
-                  >
-                    <option value="Square">Square</option>
-                    <option value="Database">Database</option>
-                    <option value="Server">Server</option>
-                    <option value="Cloud">Cloud</option>
-                    <option value="Cpu">CPU</option>
-                    <option value="MessageCircle">Queue</option>
-                  </select>
+                  <label>Icon Search:</label>
+                  <input
+                    type="text"
+                    placeholder="Search icons..."
+                    value={iconSearch}
+                    onChange={(e) => setIconSearch(e.target.value)}
+                    style={{ marginBottom: '5px', padding: '2px' }}
+                  />
+                  {isSearchingIcons && <div style={{ fontSize: '10px' }}>Searching...</div>}
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(4, 1fr)', 
+                    gap: '5px', 
+                    maxHeight: '120px', 
+                    overflowY: 'auto',
+                    border: '1px solid #eee',
+                    padding: '5px',
+                    borderRadius: '2px'
+                  }}>
+                    {iconResults.map(icon => (
+                      <div 
+                        key={icon}
+                        onClick={() => updateSelectedNode({ icon })}
+                        style={{ 
+                          cursor: 'pointer', 
+                          padding: '4px', 
+                          border: `1px solid ${currentNode.data.icon === icon ? '#3b82f6' : 'transparent'}`,
+                          borderRadius: '2px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: currentNode.data.icon === icon ? '#eff6ff' : 'transparent'
+                        }}
+                        title={icon}
+                      >
+                        <IconifyIcon icon={icon} width={20} height={20} />
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: '10px', marginTop: '5px', color: '#666' }}>
+                    Current: {currentNode.data.icon || 'none'}
+                  </div>
                 </div>
               </Panel>
             );

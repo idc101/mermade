@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@iconify/react": "^6.0.2",
     "@mermaid-js/parser": "^1.1.0",
     "dagre": "^0.8.5",
     "html-to-image": "^1.11.13",

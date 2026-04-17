@@ -31,20 +31,43 @@ export function parseMermaid(text: string): DiagramData {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
 
+  // Pre-process mermaidText to handle <icon /> tags which might break mermaid-ast
+  const iconRegex = /<icon\s+icon=["']([^"']+)["']\s*\/>/g;
+  const iconsMap: Record<string, string> = {};
+  
+  // We need to find which node each icon belongs to. 
+  // Since we haven't parsed the AST yet, we can't easily map them.
+  // However, we can strip them so they don't break the parser, 
+  // and rely on the config for icon information, OR try to find them in the raw text lines.
+  
+  const strippedMermaidText = mermaidText.replace(iconRegex, '');
+
   try {
-    const ast = parse(mermaidText) as any;
+    const ast = parse(strippedMermaidText) as any;
     
     // Extract nodes from Map
     const astNodes = ast.nodes as Map<string, any>;
     if (astNodes) {
         astNodes.forEach((astNode, id) => {
           const visual = config.nodes[id] || {};
+          let label = astNode.text?.text || id;
+          let icon = visual.icon;
+
+          // If icon not in config, try to find it in the original text for this node
+          if (!icon) {
+            const nodeLineRegex = new RegExp(`${id}\\[.*?<icon\\s+icon=["']([^"']+)["']\\s*\\/>`);
+            const match = mermaidText.match(nodeLineRegex);
+            if (match) {
+              icon = match[1];
+            }
+          }
+
           nodes.push({
             id,
             type: 'customNode',
             data: { 
-                label: astNode.text?.text || id, 
-                icon: visual.icon, 
+                label: label.trim(), 
+                icon, 
                 color: visual.color,
                 shape: astNode.shape
             },
