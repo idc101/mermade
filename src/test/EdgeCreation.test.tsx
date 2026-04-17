@@ -3,15 +3,6 @@ import { describe, it, expect } from 'vitest';
 import App from '../App';
 import { ReactFlowProvider } from 'reactflow';
 
-// Fix ResizeObserver mock
-class ResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-
-(globalThis as any).ResizeObserver = ResizeObserver;
-
 describe('Edge Creation', () => {
   it('adds an edge to the Mermaid text when connected in the UI', async () => {
     render(
@@ -20,12 +11,12 @@ describe('Edge Creation', () => {
       </ReactFlowProvider>
     );
 
-    // Initial state: WebApp -> DB and WebApp -> Cache
+    // Initial state: LIPO and BUCK
     const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
-    expect(textarea.value).toContain('WebApp -->|Reads/Writes user data| DB');
-    expect(textarea.value).toContain('WebApp -->|Fetches session| Cache');
+    expect(textarea.value).toContain('LIPO[2S LiPo Battery 7.4V]');
+    expect(textarea.value).toContain('BUCK[Buck Converter 7.4V to 5V]');
 
-    // Let's check if 'DB --> Cache' is NOT there initially
-    expect(textarea.value).not.toContain('DB --> Cache');
+    // Let's check if 'LIPO -- TEST --> BUCK' is NOT there initially
+    expect(textarea.value).not.toContain('LIPO -- TEST --> BUCK');
   });
 });

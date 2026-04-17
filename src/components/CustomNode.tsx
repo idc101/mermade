@@ -3,10 +3,17 @@ import { Handle, Position } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import * as LucideIcons from 'lucide-react';
 import { Icon as IconifyIcon } from '@iconify/react';
+import type { CustomNodeData } from '../types';
 
-const CustomNode = ({ data, selected }: NodeProps) => {
+const isValidLucideIcon = (iconName: string): iconName is keyof typeof LucideIcons => {
+  return iconName in LucideIcons;
+};
+
+const CustomNode = ({ data, selected }: NodeProps<CustomNodeData>) => {
   const isIconify = data.icon && data.icon.includes(':');
-  const LucideIcon = !isIconify ? ((LucideIcons as any)[data.icon]) : null;
+  const LucideIcon = data.icon && !isIconify && isValidLucideIcon(data.icon) 
+    ? (LucideIcons[data.icon] as React.ElementType) 
+    : null;
 
   return (
     <div

@@ -3,16 +3,7 @@ import { describe, it, expect } from 'vitest';
 import App from '../App';
 import { ReactFlowProvider } from 'reactflow';
 
-// Fix ResizeObserver mock
-class ResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-
-(globalThis as any).ResizeObserver = ResizeObserver;
-
-describe('Node Styles Popup', () => {
+describe('Node Styles', () => {
   it('allows editing the label of a selected node via Mermaid text input', async () => {
     render(
       <ReactFlowProvider>

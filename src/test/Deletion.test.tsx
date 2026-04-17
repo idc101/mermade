@@ -3,15 +3,6 @@ import { describe, it, expect } from 'vitest';
 import App from '../App';
 import { ReactFlowProvider } from 'reactflow';
 
-// Fix ResizeObserver mock
-class ResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-
-(globalThis as any).ResizeObserver = ResizeObserver;
-
 describe('Node Deletion', () => {
   it('removes the node from the Mermaid text when deleted in the UI', async () => {
     render(

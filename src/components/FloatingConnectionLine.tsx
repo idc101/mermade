@@ -1,5 +1,5 @@
 import { getSmoothStepPath } from 'reactflow';
-import type { ConnectionLineComponentProps } from 'reactflow';
+import type { ConnectionLineComponentProps, Node } from 'reactflow';
 import { getEdgeParams } from '../lib/floatingEdge';
 
 const FloatingConnectionLine = ({
@@ -11,7 +11,7 @@ const FloatingConnectionLine = ({
     return null;
   }
 
-  const targetNode = {
+  const targetNode: Node = {
     id: 'connection-target',
     width: 1,
     height: 1,
@@ -20,7 +20,7 @@ const FloatingConnectionLine = ({
     data: {},
   };
 
-  const { sx, sy, sourcePos, targetPos } = getEdgeParams(fromNode, targetNode as any);
+  const { sx, sy, sourcePos, targetPos } = getEdgeParams(fromNode, targetNode);
 
   const [edgePath] = getSmoothStepPath({
     sourceX: sx,

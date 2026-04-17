@@ -1,17 +1,14 @@
 import { parse } from 'mermaid-ast';
 import type { Node, Edge } from 'reactflow';
+import type { 
+  MermaidAST, 
+  CustomNodeData, 
+  SubgraphNodeData,
+  VisualConfig,
+  DiagramData 
+} from '../types';
 
-export interface VisualConfig {
-  nodes: Record<string, { x: number; y: number; width?: number; height?: number; color?: string; icon?: string }>;
-  edges: Record<string, { stroke?: string; animated?: boolean }>;
-}
-
-export interface DiagramData {
-  nodes: Node[];
-  edges: Edge[];
-  mermaidText: string;
-  config: VisualConfig;
-}
+export { type VisualConfig, type DiagramData };
 
 const CONFIG_DELIMITER = '%% --- arrows-config --- %%';
 
@@ -28,7 +25,7 @@ export function parseMermaid(text: string): DiagramData {
     }
   }
 
-  const nodes: Node[] = [];
+  const nodes: Node<CustomNodeData | SubgraphNodeData>[] = [];
   const edges: Edge[] = [];
 
   // Pre-process mermaidText to handle <icon /> tags
@@ -36,16 +33,16 @@ export function parseMermaid(text: string): DiagramData {
   const strippedMermaidText = mermaidText.replace(iconRegex, '');
 
   try {
-    const ast = parse(strippedMermaidText) as any;
-    const astNodes = ast.nodes as Map<string, any>;
-    const astSubgraphs = ast.subgraphs as any[];
+    const ast = parse(strippedMermaidText) as unknown as MermaidAST;
+    const astNodes = ast.nodes;
+    const astSubgraphs = ast.subgraphs;
 
     if (astSubgraphs) {
       astSubgraphs.forEach((sg) => {
         const sgId = sg.id;
         const visual = config.nodes[sgId] || {};
         
-        const subgraphNode: Node = {
+        const subgraphNode: Node<SubgraphNodeData> = {
           id: sgId,
           type: 'subgraphNode',
           data: { 
@@ -76,7 +73,7 @@ export function parseMermaid(text: string): DiagramData {
             }
           }
 
-          const node: Node = {
+          const node: Node<CustomNodeData> = {
             id,
             type: 'customNode',
             data: { 
@@ -101,7 +98,7 @@ export function parseMermaid(text: string): DiagramData {
         });
     }
 
-    const astLinks = ast.links as any[];
+    const astLinks = ast.links;
     if (astLinks) {
         astLinks.forEach((link) => {
           const edgeId = `${link.source}-${link.target}`;
@@ -125,7 +122,7 @@ export function parseMermaid(text: string): DiagramData {
   return { nodes, edges, mermaidText, config };
 }
 
-export function serializeMermaid(nodes: Node[], edges: Edge[], originalMermaidText: string): string {
+export function serializeMermaid(nodes: Node<CustomNodeData | SubgraphNodeData>[], edges: Edge[], originalMermaidText: string): string {
   const config: VisualConfig = {
     nodes: {},
     edges: {},
@@ -138,7 +135,7 @@ export function serializeMermaid(nodes: Node[], edges: Edge[], originalMermaidTe
       width: node.style?.width ? Number(node.style.width) : undefined,
       height: node.style?.height ? Number(node.style.height) : undefined,
       color: node.data.color,
-      icon: node.data.icon,
+      icon: 'icon' in node.data ? node.data.icon : undefined,
     };
   });
 

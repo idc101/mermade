@@ -30,6 +30,8 @@ import { getLayoutedElements } from './lib/layout';
 
 import { toPng } from 'html-to-image';
 
+import type { CustomNodeData, SubgraphNodeData } from './types';
+
 const nodeTypes: NodeTypes = {
   customNode: CustomNode,
   subgraphNode: SubgraphNode,
@@ -324,7 +326,7 @@ function App() {
     setIconResults([]);
   }, []);
 
-  const updateSelectedNode = (data: any) => {
+  const updateSelectedNode = (data: Partial<CustomNodeData | SubgraphNodeData>) => {
     if (!selectedElement || !('data' in selectedElement)) return;
     
     setNodes((nds) => {

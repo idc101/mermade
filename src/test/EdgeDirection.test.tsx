@@ -3,16 +3,7 @@ import { describe, it, expect } from 'vitest';
 import App from '../App';
 import { ReactFlowProvider } from 'reactflow';
 
-// Fix ResizeObserver mock
-class ResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-
-(globalThis as any).ResizeObserver = ResizeObserver;
-
-describe('Edge Directionality', () => {
+describe('Edge Direction', () => {
   it('assigns markerEnd to edges', async () => {
     // We test the data structure directly since jsdom doesn't fully render SVG markers
     render(
@@ -25,7 +16,7 @@ describe('Edge Directionality', () => {
     await waitFor(() => {
         // We'll check the textarea to ensure the sync happened
         const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
-        expect(textarea.value).toContain('WebApp');
+        expect(textarea.value).toContain('LIPO');
     });
 
     // In a real browser, React Flow adds marker-end attributes.
