@@ -31,14 +31,8 @@ function FloatingEdge({ source, target, markerEnd, style, label }: EdgeProps) {
             style={{
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-              background: '#fff',
-              padding: '2px 4px',
-              borderRadius: '2px',
-              fontSize: '10px',
-              fontWeight: 700,
-              pointerEvents: 'all',
             }}
-            className="nodrag nopan"
+            className="nodrag nopan edge-label"
           >
             {label}
           </div>

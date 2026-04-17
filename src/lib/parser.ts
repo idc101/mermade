@@ -2,7 +2,7 @@ import { parse } from 'mermaid-ast';
 import type { Node, Edge } from 'reactflow';
 
 export interface VisualConfig {
-  nodes: Record<string, { x: number; y: number; color?: string; icon?: string }>;
+  nodes: Record<string, { x: number; y: number; width?: number; height?: number; color?: string; icon?: string }>;
   edges: Record<string, { stroke?: string; animated?: boolean }>;
 }
 
@@ -31,20 +31,15 @@ export function parseMermaid(text: string): DiagramData {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
 
-  // Pre-process mermaidText to handle <icon /> tags which might break mermaid-ast
+  // Pre-process mermaidText to handle <icon /> tags
   const iconRegex = /<icon\s+icon=["']([^"']+)["']\s*\/>/g;
-  
   const strippedMermaidText = mermaidText.replace(iconRegex, '');
 
   try {
     const ast = parse(strippedMermaidText) as any;
-    
-    // Extract nodes from Map
     const astNodes = ast.nodes as Map<string, any>;
-    const nodeMap: Record<string, Node> = {};
-
-    // Extract subgraphs first so they are rendered behind
     const astSubgraphs = ast.subgraphs as any[];
+
     if (astSubgraphs) {
       astSubgraphs.forEach((sg) => {
         const sgId = sg.id;
@@ -55,10 +50,13 @@ export function parseMermaid(text: string): DiagramData {
           type: 'subgraphNode',
           data: { 
             label: sg.title?.text || sgId,
-            color: visual.color || 'rgba(240, 240, 240, 0.5)'
+            color: visual.color
           },
           position: { x: visual.x ?? 0, y: visual.y ?? 0 },
-          style: { width: 200, height: 200 }
+          style: { 
+            width: visual.width ?? 200, 
+            height: visual.height ?? 150 
+          }
         };
         nodes.push(subgraphNode);
       });
@@ -70,7 +68,6 @@ export function parseMermaid(text: string): DiagramData {
           let label = astNode.text?.text || id;
           let icon = visual.icon;
 
-          // If icon not in config, try to find it in the original text for this node
           if (!icon) {
             const nodeLineRegex = new RegExp(`${id}\\[.*?<icon\\s+icon=["']([^"']+)["']\\s*\\/>`);
             const match = mermaidText.match(nodeLineRegex);
@@ -89,9 +86,9 @@ export function parseMermaid(text: string): DiagramData {
                 shape: astNode.shape
             },
             position: { x: visual.x ?? 0, y: visual.y ?? 0 },
+            style: visual.width ? { width: visual.width, height: visual.height } : undefined
           };
           
-          // Find if node belongs to a subgraph
           if (astSubgraphs) {
             const parentSg = astSubgraphs.find(sg => sg.nodes?.includes(id));
             if (parentSg) {
@@ -101,11 +98,9 @@ export function parseMermaid(text: string): DiagramData {
           }
 
           nodes.push(node);
-          nodeMap[id] = node;
         });
     }
 
-    // Extract edges (links)
     const astLinks = ast.links as any[];
     if (astLinks) {
         astLinks.forEach((link) => {
@@ -124,7 +119,7 @@ export function parseMermaid(text: string): DiagramData {
     }
 
   } catch (e) {
-    console.error('Failed to parse mermaid text with mermaid-ast:', e);
+    console.error('Failed to parse mermaid text:', e);
   }
 
   return { nodes, edges, mermaidText, config };
@@ -140,6 +135,8 @@ export function serializeMermaid(nodes: Node[], edges: Edge[], originalMermaidTe
     config.nodes[node.id] = {
       x: Math.round(node.position.x),
       y: Math.round(node.position.y),
+      width: node.style?.width ? Number(node.style.width) : undefined,
+      height: node.style?.height ? Number(node.style.height) : undefined,
       color: node.data.color,
       icon: node.data.icon,
     };

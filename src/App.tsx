@@ -43,19 +43,42 @@ const defaultEdgeOptions = {
   type: 'floating',
   markerEnd: {
     type: MarkerType.ArrowClosed,
-    color: '#333',
+    color: '#000',
   },
 };
 
-const initialText = `flowchart TD
-  subgraph DataLayer[Data Layer]
-    DB[(PostgreSQL Database)]
-    Cache[(Redis)]
-  end
-  WebApp[Web Application]
+const initialText = `graph TD
+    subgraph Battery_Power ["Power Source"]
+        LIPO[2S LiPo Battery 7.4V]
+    end
 
-  WebApp -->|Reads/Writes user data| DB
-  WebApp -->|Fetches session| Cache`;
+    subgraph Regulation ["Voltage Management"]
+        BUCK[Buck Converter 7.4V to 5V]
+    end
+
+    subgraph Logic ["Control Unit"]
+        ESP32[ESP32 Development Board]
+    end
+
+    subgraph Actuators ["Motors and Steering"]
+        DRIVER[Motor Driver - e.g. MX1508]
+        SERVO[9g Servo]
+        MOT1[N20 Motor Left]
+        MOT2[N20 Motor Right]
+    end
+    LIPO -- VCC --> BUCK
+    LIPO -- VCC --> DRIVER
+    LIPO -- GND --> DRIVER
+    LIPO -- GND --> BUCK
+    
+    BUCK -- 5V --> ESP32_VIN[ESP32 VIN Pin]
+    BUCK -- 5V --> SERVO_VCC[Servo Red Wire]
+    ESP32_GND[ESP32 GND] -- Common Ground --> DRIVER_GND[Driver GND]
+    SERVO_GND[Servo Brown Wire] -- GND --> ESP32_GND
+    ESP32 -- PWM Signal --> SERVO_SIG[Servo Orange Wire]
+    ESP32 -- GPIO Pins --> DRIVER
+    DRIVER -- A --> MOT1
+    DRIVER -- B --> MOT2`;
 
 const STORAGE_KEY = 'arrows-diagram-text';
 
@@ -94,7 +117,7 @@ function App() {
     const viewport = document.querySelector('.react-flow__viewport') as HTMLElement;
     if (viewport) {
       toPng(viewport, {
-        backgroundColor: '#fafafa',
+        backgroundColor: '#ffffff',
       }).then((dataUrl) => {
         const link = document.createElement('a');
         link.download = 'diagram.png';
@@ -119,7 +142,7 @@ function App() {
       type: 'floating',
       markerEnd: {
         type: MarkerType.ArrowClosed,
-        color: '#333',
+        color: '#000',
       },
     }));
 
@@ -210,7 +233,7 @@ function App() {
         type: 'floating',
         markerEnd: {
         type: MarkerType.ArrowClosed,
-        color: '#333',
+        color: '#000',
       },
       };
       
@@ -355,7 +378,7 @@ function App() {
       type: 'floating',
       markerEnd: {
         type: MarkerType.ArrowClosed,
-        color: '#333',
+        color: '#000',
       },
     }));
 
@@ -424,7 +447,7 @@ function App() {
         />
       </div>
 
-      <div style={{ flex: 1, position: 'relative', backgroundColor: '#fafafa' }}>
+      <div style={{ flex: 1, position: 'relative', backgroundColor: '#ffffff' }}>
         <ReactFlow
           nodes={nodes}
           edges={edges}

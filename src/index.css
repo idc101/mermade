@@ -1,11 +1,15 @@
+* {
+  box-sizing: border-box;
+}
+
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color-scheme: light;
+  color: #000000;
+  background-color: #ffffff;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -25,38 +29,61 @@ body {
 }
 
 /* Custom Node Styles */
+.custom-node {
+  background-color: #fff2cc;
+  border: 1px solid #d6b656;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 0 15px rgba(138, 43, 226, 0.15);
+  transition: all 0.2s ease-in-out;
+}
+
+.custom-node.selected {
+  border-color: #8a2be2;
+  box-shadow: 0 0 20px rgba(138, 43, 226, 0.3);
+  transform: scale(1.02);
+}
+
 .custom-node .custom-handle {
-  width: 10px;
-  height: 10px;
-  background: #3b82f6;
+  width: 8px;
+  height: 8px;
+  background: #8a2be2;
   border: 1px solid white;
   border-radius: 50%;
   opacity: 0;
   transition: opacity 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .custom-node:hover .custom-handle {
   opacity: 1;
 }
 
-.custom-handle::before,
-.custom-handle::after {
-  content: '';
-  position: absolute;
-  background-color: white;
+/* Subgraph Styles - styling the ReactFlow wrapper node */
+.react-flow__node-subgraphNode {
+  border: 1px solid #9673a6 !important;
+  background-color: rgba(225, 213, 231, 0.1) !important;
+  border-radius: 4px !important;
+  pointer-events: none !important;
 }
 
-/* Vertical bar of plus */
-.custom-handle::before {
-  width: 1.5px;
-  height: 6px;
+.react-flow__node-subgraphNode .custom-handle {
+  pointer-events: all !important;
 }
 
-/* Horizontal bar of plus */
-.custom-handle::after {
-  width: 6px;
-  height: 1.5px;
+.subgraph-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #000;
+  text-align: center;
+  width: 100%;
+}
+
+/* Edge Label Styles */
+.edge-label {
+  background-color: #e1d5e7;
+  color: #000;
+  padding: 2px 6px;
+  border-radius: 0;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid #9673a6;
+  pointer-events: all;
 }

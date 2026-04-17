@@ -2,22 +2,23 @@ import dagre from 'dagre';
 import { Position } from 'reactflow';
 import type { Node, Edge } from 'reactflow';
 
-const dagreGraph = new dagre.graphlib.Graph();
-dagreGraph.setDefaultEdgeLabel(() => ({}));
-
-const nodeWidth = 150;
-const nodeHeight = 50;
+const nodeWidth = 180;
+const nodeHeight = 60;
 
 export const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => {
   const isHorizontal = direction === 'LR';
   const dagreGraph = new dagre.graphlib.Graph({ compound: true });
   dagreGraph.setDefaultEdgeLabel(() => ({}));
-  dagreGraph.setGraph({ rankdir: direction });
+  
+  dagreGraph.setGraph({ 
+    rankdir: direction,
+    ranksep: 100,
+    nodesep: 80,
+  });
 
+  // 1. Setup nodes in dagre
   nodes.forEach((node) => {
     if (node.type === 'subgraphNode') {
-       // Subgraphs don't have a fixed size yet, dagre will compute it if we don't set it?
-       // Actually dagre needs some initial size or it might not work well.
        dagreGraph.setNode(node.id, { width: 0, height: 0 });
     } else {
        dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
@@ -28,24 +29,75 @@ export const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'T
     }
   });
 
+  // 2. Setup edges in dagre
   edges.forEach((edge) => {
     dagreGraph.setEdge(edge.source, edge.target);
   });
 
+  // 3. Run layout
   dagre.layout(dagreGraph);
 
+  // 4. Pre-calculate subgraph bounds manually based on children's final dagre positions
+  const subgraphBounds = new Map<string, { width: number; height: number; left: number; top: number }>();
+  
+  nodes.filter(n => n.type === 'subgraphNode').forEach(sg => {
+    const children = nodes.filter(n => n.parentNode === sg.id);
+    if (children.length > 0) {
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      children.forEach(child => {
+        const dNode = dagreGraph.node(child.id);
+        const w = dNode.width || nodeWidth;
+        const h = dNode.height || nodeHeight;
+        minX = Math.min(minX, dNode.x - w / 2);
+        minY = Math.min(minY, dNode.y - h / 2);
+        maxX = Math.max(maxX, dNode.x + w / 2);
+        maxY = Math.max(maxY, dNode.y + h / 2);
+      });
+
+      const padding = 40;
+      const topPadding = 60; // Extra space for title
+      
+      const width = (maxX - minX) + padding * 2;
+      const height = (maxY - minY) + padding + topPadding;
+      const left = minX - padding;
+      const top = minY - topPadding;
+      
+      subgraphBounds.set(sg.id, { width, height, left, top });
+    } else {
+      subgraphBounds.set(sg.id, { width: 200, height: 150, left: 0, top: 0 });
+    }
+  });
+
+  // 5. Build final layouted nodes with correct relative positioning
   const layoutedNodes = nodes.map((node) => {
     const nodeWithPosition = dagreGraph.node(node.id);
-    let x = nodeWithPosition.x - (nodeWithPosition.width || nodeWidth) / 2;
-    let y = nodeWithPosition.y - (nodeWithPosition.height || nodeHeight) / 2;
+    const isSubgraph = node.type === 'subgraphNode';
+    
+    let width, height, absLeft, absTop;
 
-    // If node has a parent, its position must be relative to the parent in ReactFlow
+    if (isSubgraph) {
+      const bounds = subgraphBounds.get(node.id)!;
+      width = bounds.width;
+      height = bounds.height;
+      absLeft = bounds.left;
+      absTop = bounds.top;
+    } else {
+      width = nodeWithPosition.width || nodeWidth;
+      height = nodeWithPosition.height || nodeHeight;
+      absLeft = nodeWithPosition.x - width / 2;
+      absTop = nodeWithPosition.y - height / 2;
+    }
+
+    let x = absLeft;
+    let y = absTop;
+
     if (node.parentNode) {
-      const parentWithPosition = dagreGraph.node(node.parentNode);
-      const parentX = parentWithPosition.x - (parentWithPosition.width || 0) / 2;
-      const parentY = parentWithPosition.y - (parentWithPosition.height || 0) / 2;
-      x -= parentX;
-      y -= parentY;
+      const pBounds = subgraphBounds.get(node.parentNode);
+      if (pBounds) {
+        // Child position is relative to its parent's top-left in ReactFlow
+        x = absLeft - pBounds.left;
+        y = absTop - pBounds.top;
+      }
     }
 
     return {
@@ -53,11 +105,11 @@ export const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'T
       targetPosition: isHorizontal ? Position.Left : Position.Top,
       sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
       position: { x, y },
-      style: node.type === 'subgraphNode' ? { 
+      style: { 
         ...node.style,
-        width: nodeWithPosition.width, 
-        height: nodeWithPosition.height 
-      } : node.style,
+        width, 
+        height 
+      },
     };
   });
 
