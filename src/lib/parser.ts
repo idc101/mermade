@@ -33,12 +33,6 @@ export function parseMermaid(text: string): DiagramData {
 
   // Pre-process mermaidText to handle <icon /> tags which might break mermaid-ast
   const iconRegex = /<icon\s+icon=["']([^"']+)["']\s*\/>/g;
-  const iconsMap: Record<string, string> = {};
-  
-  // We need to find which node each icon belongs to. 
-  // Since we haven't parsed the AST yet, we can't easily map them.
-  // However, we can strip them so they don't break the parser, 
-  // and rely on the config for icon information, OR try to find them in the raw text lines.
   
   const strippedMermaidText = mermaidText.replace(iconRegex, '');
 
@@ -47,6 +41,29 @@ export function parseMermaid(text: string): DiagramData {
     
     // Extract nodes from Map
     const astNodes = ast.nodes as Map<string, any>;
+    const nodeMap: Record<string, Node> = {};
+
+    // Extract subgraphs first so they are rendered behind
+    const astSubgraphs = ast.subgraphs as any[];
+    if (astSubgraphs) {
+      astSubgraphs.forEach((sg) => {
+        const sgId = sg.id;
+        const visual = config.nodes[sgId] || {};
+        
+        const subgraphNode: Node = {
+          id: sgId,
+          type: 'subgraphNode',
+          data: { 
+            label: sg.title?.text || sgId,
+            color: visual.color || 'rgba(240, 240, 240, 0.5)'
+          },
+          position: { x: visual.x ?? 0, y: visual.y ?? 0 },
+          style: { width: 200, height: 200 }
+        };
+        nodes.push(subgraphNode);
+      });
+    }
+
     if (astNodes) {
         astNodes.forEach((astNode, id) => {
           const visual = config.nodes[id] || {};
@@ -62,7 +79,7 @@ export function parseMermaid(text: string): DiagramData {
             }
           }
 
-          nodes.push({
+          const node: Node = {
             id,
             type: 'customNode',
             data: { 
@@ -72,7 +89,19 @@ export function parseMermaid(text: string): DiagramData {
                 shape: astNode.shape
             },
             position: { x: visual.x ?? 0, y: visual.y ?? 0 },
-          });
+          };
+          
+          // Find if node belongs to a subgraph
+          if (astSubgraphs) {
+            const parentSg = astSubgraphs.find(sg => sg.nodes?.includes(id));
+            if (parentSg) {
+              node.parentNode = parentSg.id;
+              node.extent = 'parent';
+            }
+          }
+
+          nodes.push(node);
+          nodeMap[id] = node;
         });
     }
 
@@ -124,4 +153,8 @@ export function serializeMermaid(nodes: Node[], edges: Edge[], originalMermaidTe
   });
 
   return `${originalMermaidText.trim()}\n\n${CONFIG_DELIMITER}\n${JSON.stringify(config, null, 2)}`;
+}
+
+export function clearConfig(text: string): string {
+  return text.split(CONFIG_DELIMITER)[0].trim();
 }

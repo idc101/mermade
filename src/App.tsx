@@ -22,15 +22,17 @@ import 'reactflow/dist/style.css';
 import { Icon as IconifyIcon } from '@iconify/react';
 
 import CustomNode from './components/CustomNode';
+import SubgraphNode from './components/SubgraphNode';
 import FloatingEdge from './components/FloatingEdge';
 import FloatingConnectionLine from './components/FloatingConnectionLine';
-import { parseMermaid, serializeMermaid } from './lib/parser';
+import { parseMermaid, serializeMermaid, clearConfig } from './lib/parser';
 import { getLayoutedElements } from './lib/layout';
 
 import { toPng } from 'html-to-image';
 
 const nodeTypes: NodeTypes = {
   customNode: CustomNode,
+  subgraphNode: SubgraphNode,
 };
 
 const edgeTypes: EdgeTypes = {
@@ -46,9 +48,11 @@ const defaultEdgeOptions = {
 };
 
 const initialText = `flowchart TD
+  subgraph DataLayer[Data Layer]
+    DB[(PostgreSQL Database)]
+    Cache[(Redis)]
+  end
   WebApp[Web Application]
-  DB[(PostgreSQL Database)]
-  Cache[(Redis)]
 
   WebApp -->|Reads/Writes user data| DB
   WebApp -->|Fetches session| Cache`;
@@ -137,9 +141,8 @@ function App() {
     const semanticPart = parts[0];
     const mermaidLines = semanticPart.trim().split('\n');
     const header = mermaidLines[0] || 'flowchart TD';
-    
-    // Reconstruct semantic part
-    const nodeDefs = newNodes.map(n => {
+
+    const getNodeDef = (n: Node) => {
       const iconTag = n.data.icon ? `<icon icon="${n.data.icon}" /> ` : '';
       const label = n.data.label || n.id;
       const fullLabel = `${iconTag}${label}`.trim();
@@ -156,11 +159,21 @@ function App() {
       }
       
       return `  ${n.id}${leftBracket}${fullLabel}${rightBracket}`;
+    };
+
+    const subgraphs = newNodes.filter(n => n.type === 'subgraphNode');
+    const rootNodes = newNodes.filter(n => !n.parentNode && n.type !== 'subgraphNode');
+
+    const subgraphDefs = subgraphs.map(sg => {
+      const children = newNodes.filter(n => n.parentNode === sg.id);
+      const childDefs = children.map(n => `    ${getNodeDef(n).trim()}`).join('\n');
+      return `  subgraph ${sg.id}[${sg.data.label}]\n${childDefs}\n  end`;
     }).join('\n');
     
+    const rootNodeDefs = rootNodes.map(n => getNodeDef(n)).join('\n');
     const edgeDefs = newEdges.map(e => `  ${e.source} -->${e.label ? `|${e.label}|` : ''} ${e.target}`).join('\n');
     
-    const newMermaidPart = `${header}\n${nodeDefs}\n\n${edgeDefs}`;
+    const newMermaidPart = `${header}\n${subgraphDefs}\n${rootNodeDefs}\n\n${edgeDefs}`;
     const newFullText = serializeMermaid(newNodes, newEdges, newMermaidPart);
     setText(newFullText);
   }, [text]);
@@ -213,12 +226,36 @@ function App() {
   const onNodesDelete = useCallback(
     (deletedNodes: Node[]) => {
       setNodes((nds) => {
-        const nextNodes = nds.filter((node) => !deletedNodes.some((dn) => dn.id === node.id));
-        syncToText(nextNodes, edges);
+        // Find children of deleted subgraphs
+        const childIdsToDelete = new Set<string>();
+        deletedNodes.forEach(dn => {
+          if (dn.type === 'subgraphNode') {
+            nds.forEach(n => {
+              if (n.parentNode === dn.id) {
+                childIdsToDelete.add(n.id);
+              }
+            });
+          }
+        });
+
+        const nextNodes = nds.filter((node) => 
+          !deletedNodes.some((dn) => dn.id === node.id) && 
+          !childIdsToDelete.has(node.id)
+        );
+        
+        // Also need to delete edges connected to these children
+        setEdges(eds => {
+           const nextEdges = eds.filter(edge => 
+             !childIdsToDelete.has(edge.source) && !childIdsToDelete.has(edge.target)
+           );
+           syncToText(nextNodes, nextEdges);
+           return nextEdges;
+        });
+
         return nextNodes;
       });
     },
-    [edges, syncToText]
+    [syncToText]
   );
 
   const onEdgesDelete = useCallback(
@@ -279,6 +316,21 @@ function App() {
     });
   };
 
+  const addNewSubgraph = useCallback(() => {
+    const id = `subgraph_${Math.random().toString(36).substring(2, 11)}`;
+    const newSubgraph: Node = {
+      id,
+      type: 'subgraphNode',
+      data: { label: 'New Subgraph', color: 'rgba(240, 240, 240, 0.5)' },
+      position: { x: 100, y: 100 },
+      style: { width: 200, height: 200 },
+    };
+    
+    const nextNodes = [...nodes, newSubgraph];
+    setNodes(nextNodes);
+    syncToText(nextNodes, edges);
+  }, [nodes, edges, syncToText]);
+
   const addNewNode = useCallback(() => {
     const id = `node_${Math.random().toString(36).substring(2, 11)}`;
     const newNode: Node = {
@@ -293,6 +345,31 @@ function App() {
     syncToText(nextNodes, edges);
   }, [nodes, edges, syncToText]);
 
+  const handleAutoLayout = useCallback(() => {
+    const cleanedText = clearConfig(text);
+    const { nodes: parsedNodes, edges: parsedEdges } = parseMermaid(cleanedText);
+    
+    // Ensure all parsed edges use the floating type
+    const floatingEdges = parsedEdges.map(edge => ({
+      ...edge,
+      type: 'floating',
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        color: '#333',
+      },
+    }));
+
+    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(parsedNodes, floatingEdges);
+    
+    setNodes(layoutedNodes);
+    setEdges(layoutedEdges);
+    
+    // Also update the text to clear the config and store new layouted positions
+    isInternalUpdate.current = true;
+    const newText = serializeMermaid(layoutedNodes, layoutedEdges, cleanedText);
+    setText(newText);
+  }, [text, edges]);
+
   return (
     <div style={{ width: '100vw', height: '100vh', display: 'flex', color: 'black' }}>
       <div style={{ width: '400px', borderRight: '1px solid #ccc', display: 'flex', flexDirection: 'column', backgroundColor: '#fff' }}>
@@ -304,6 +381,18 @@ function App() {
               style={{ padding: '4px 8px', cursor: 'pointer', fontSize: '12px' }}
             >
               + Node
+            </button>
+            <button 
+              onClick={addNewSubgraph}
+              style={{ padding: '4px 8px', cursor: 'pointer', fontSize: '12px' }}
+            >
+              + Subgraph
+            </button>
+            <button 
+              onClick={handleAutoLayout}
+              style={{ padding: '4px 8px', cursor: 'pointer', fontSize: '12px', backgroundColor: '#e2e8f0', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+            >
+              Auto Layout
             </button>
             <button 
               onClick={exportPng}
