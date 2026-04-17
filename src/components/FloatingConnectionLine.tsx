@@ -1,4 +1,4 @@
-import { getBezierPath } from 'reactflow';
+import { getSmoothStepPath } from 'reactflow';
 import type { ConnectionLineComponentProps } from 'reactflow';
 import { getEdgeParams } from '../lib/floatingEdge';
 
@@ -22,7 +22,7 @@ const FloatingConnectionLine = ({
 
   const { sx, sy, sourcePos, targetPos } = getEdgeParams(fromNode, targetNode as any);
 
-  const [edgePath] = getBezierPath({
+  const [edgePath] = getSmoothStepPath({
     sourceX: sx,
     sourceY: sy,
     sourcePosition: sourcePos,
@@ -39,7 +39,6 @@ const FloatingConnectionLine = ({
         strokeWidth={1.5}
         className="animated"
         d={edgePath}
-        markerEnd="url(#arrowhead)"
       />
     </g>
   );

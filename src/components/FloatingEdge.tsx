@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useStore, getBezierPath, EdgeLabelRenderer, BaseEdge } from 'reactflow';
+import { useStore, getSmoothStepPath, EdgeLabelRenderer, BaseEdge } from 'reactflow';
 import type { EdgeProps } from 'reactflow';
 import { getEdgeParams } from '../lib/floatingEdge';
 
@@ -13,7 +13,7 @@ function FloatingEdge({ source, target, markerEnd, style, label }: EdgeProps) {
 
   const { sx, sy, tx, ty, sourcePos, targetPos } = getEdgeParams(sourceNode, targetNode);
 
-  const [edgePath, labelX, labelY] = getBezierPath({
+  const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX: sx,
     sourceY: sy,
     sourcePosition: sourcePos,

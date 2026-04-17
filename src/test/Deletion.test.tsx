@@ -21,7 +21,7 @@ describe('Node Deletion', () => {
     );
 
     // 1. Add a new node
-    const addButton = screen.getByText('+ Add Node');
+    const addButton = screen.getByText('+ Node');
     fireEvent.click(addButton);
 
     // The node should appear in the Mermaid text (it should have a random ID)

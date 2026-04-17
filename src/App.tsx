@@ -112,7 +112,10 @@ function App() {
     const floatingEdges = parsedEdges.map(edge => ({
       ...edge,
       type: 'floating',
-      markerEnd: 'url(#arrowhead)',
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        color: '#333',
+      },
     }));
 
     // If no positions are stored in config, auto-layout
@@ -170,7 +173,10 @@ function App() {
         source: params.source,
         target: params.target,
         type: 'floating',
-        markerEnd: 'url(#arrowhead)',
+        markerEnd: {
+        type: MarkerType.ArrowClosed,
+        color: '#333',
+      },
       };
       
       setEdges((eds) => {

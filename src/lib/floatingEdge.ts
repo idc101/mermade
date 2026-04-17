@@ -2,7 +2,7 @@ import { Position, internalsSymbol } from 'reactflow';
 import type { Node } from 'reactflow';
 
 // returns the position (top, right, bottom or left) of a node relative to another node
-function getParams(nodeA: Node, nodeB: Node): [number, number, Position] {
+function getParams(nodeA: Node, nodeB: Node, offset = 0): [number, number, Position] {
   const centerA = getNodeCenter(nodeA);
   const centerB = getNodeCenter(nodeB);
 
@@ -19,11 +19,11 @@ function getParams(nodeA: Node, nodeB: Node): [number, number, Position] {
     position = centerA.y > centerB.y ? Position.Top : Position.Bottom;
   }
 
-  const [x, y] = getHandleCoordsByPosition(nodeA, position);
+  const [x, y] = getHandleCoordsByPosition(nodeA, position, offset);
   return [x, y, position];
 }
 
-function getHandleCoordsByPosition(node: Node, handlePosition: Position) {
+function getHandleCoordsByPosition(node: Node, handlePosition: Position, offset = 0) {
   // all handles are positioned relative to the node's top left corner
   const handle = node[internalsSymbol]?.handleBounds?.source?.find(
     (h) => h.position === handlePosition
@@ -54,6 +54,22 @@ function getHandleCoordsByPosition(node: Node, handlePosition: Position) {
     }
   }
 
+  // Apply offset to move the point away from the node border
+  switch (handlePosition) {
+    case Position.Left:
+      offsetX -= offset;
+      break;
+    case Position.Right:
+      offsetX += offset;
+      break;
+    case Position.Top:
+      offsetY -= offset;
+      break;
+    case Position.Bottom:
+      offsetY += offset;
+      break;
+  }
+
   return [
     (node.positionAbsolute?.x ?? 0) + offsetX,
     (node.positionAbsolute?.y ?? 0) + offsetY,
@@ -70,7 +86,8 @@ function getNodeCenter(node: Node) {
 // returns the handle positions and coordinates for an edge between two nodes
 export function getEdgeParams(source: Node, target: Node) {
   const [sx, sy, sourcePos] = getParams(source, target);
-  const [tx, ty, targetPos] = getParams(target, source);
+  // Using an offset for the target so the arrowhead isn't hidden by the node
+  const [tx, ty, targetPos] = getParams(target, source, 10);
 
   return {
     sx,
