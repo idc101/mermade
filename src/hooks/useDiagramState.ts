@@ -39,28 +39,36 @@ export function useDiagramState() {
       return;
     }
 
-    const { nodes: parsedNodes, edges: parsedEdges, config } = parseMermaid(text);
-    
-    // Ensure all parsed edges use the floating type
-    const floatingEdges = parsedEdges.map(edge => ({
-      ...edge,
-      type: 'floating',
-      markerEnd: {
-        type: MarkerType.ArrowClosed,
-        color: '#000',
-      },
-    }));
+    const updateLayout = async () => {
+      const { nodes: parsedNodes, edges: parsedEdges, config, mermaidText } = parseMermaid(text);
+      
+      // Ensure all parsed edges use the floating type
+      const floatingEdges = parsedEdges.map(edge => ({
+        ...edge,
+        type: 'floating',
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: '#000',
+        },
+      }));
 
-    // If no positions are stored in config, auto-layout
-    const hasPositions = Object.keys(config.nodes).length > 0;
-    if (!hasPositions && parsedNodes.length > 0) {
-      const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(parsedNodes, floatingEdges);
-      setNodes(layoutedNodes);
-      setEdges(layoutedEdges);
-    } else {
-      setNodes(parsedNodes);
-      setEdges(floatingEdges);
-    }
+      // Determine direction from mermaid text
+      const isHorizontal = mermaidText.includes('graph LR') || mermaidText.includes('flowchart LR');
+      const elkDirection = isHorizontal ? 'RIGHT' : 'DOWN';
+
+      // If no positions are stored in config, auto-layout
+      const hasPositions = Object.keys(config.nodes).length > 0;
+      if (!hasPositions && parsedNodes.length > 0) {
+        const { nodes: layoutedNodes, edges: layoutedEdges } = await getLayoutedElements(parsedNodes, floatingEdges, elkDirection);
+        setNodes(layoutedNodes);
+        setEdges(layoutedEdges);
+      } else {
+        setNodes(parsedNodes);
+        setEdges(floatingEdges);
+      }
+    };
+
+    updateLayout();
   }, [text]);
 
   const syncToText = useCallback((newNodes: Node[], newEdges: Edge[]) => {
@@ -170,9 +178,9 @@ export function useDiagramState() {
     });
   }, [edges, syncToText]);
 
-  const handleAutoLayout = useCallback(() => {
+  const handleAutoLayout = useCallback(async () => {
     const cleanedText = clearConfig(text);
-    const { nodes: parsedNodes, edges: parsedEdges } = parseMermaid(cleanedText);
+    const { nodes: parsedNodes, edges: parsedEdges, mermaidText } = parseMermaid(cleanedText);
     
     const floatingEdges = parsedEdges.map(edge => ({
       ...edge,
@@ -183,7 +191,10 @@ export function useDiagramState() {
       },
     }));
 
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(parsedNodes, floatingEdges);
+    const isHorizontal = mermaidText.includes('graph LR') || mermaidText.includes('flowchart LR');
+    const elkDirection = isHorizontal ? 'RIGHT' : 'DOWN';
+
+    const { nodes: layoutedNodes, edges: layoutedEdges } = await getLayoutedElements(parsedNodes, floatingEdges, elkDirection);
     
     setNodes(layoutedNodes);
     setEdges(layoutedEdges);
