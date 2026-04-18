@@ -20,7 +20,7 @@ const FloatingConnectionLine = ({
     data: {},
   };
 
-  const { sx, sy, sourcePos, targetPos } = getEdgeParams(fromNode, targetNode);
+  const { sx, sy, sourcePos, targetPos } = getEdgeParams(fromNode, targetNode, [], 'connection');
 
   const [edgePath] = getSmoothStepPath({
     sourceX: sx,

@@ -29,11 +29,22 @@ const CustomNode = ({ data, selected, style }: NodeProps<CustomNodeData>) => {
         padding: '0 10px',
       }}
     >
-      {/* 4 Handles for Floating Edges */}
-      <Handle type="source" position={Position.Top} id="t" className="custom-handle" />
-      <Handle type="source" position={Position.Right} id="r" className="custom-handle" />
-      <Handle type="source" position={Position.Bottom} id="b" className="custom-handle" />
-      <Handle type="source" position={Position.Left} id="l" className="custom-handle" />
+      {/* 12 Handles for Floating Edges (3 on each side) */}
+      <Handle type="source" position={Position.Top} id="t1" className="custom-handle" style={{ left: '25%' }} />
+      <Handle type="source" position={Position.Top} id="t2" className="custom-handle" style={{ left: '50%' }} />
+      <Handle type="source" position={Position.Top} id="t3" className="custom-handle" style={{ left: '75%' }} />
+
+      <Handle type="source" position={Position.Right} id="r1" className="custom-handle" style={{ top: '25%' }} />
+      <Handle type="source" position={Position.Right} id="r2" className="custom-handle" style={{ top: '50%' }} />
+      <Handle type="source" position={Position.Right} id="r3" className="custom-handle" style={{ top: '75%' }} />
+
+      <Handle type="source" position={Position.Bottom} id="b1" className="custom-handle" style={{ left: '25%' }} />
+      <Handle type="source" position={Position.Bottom} id="b2" className="custom-handle" style={{ left: '50%' }} />
+      <Handle type="source" position={Position.Bottom} id="b3" className="custom-handle" style={{ left: '75%' }} />
+
+      <Handle type="source" position={Position.Left} id="l1" className="custom-handle" style={{ top: '25%' }} />
+      <Handle type="source" position={Position.Left} id="l2" className="custom-handle" style={{ top: '50%' }} />
+      <Handle type="source" position={Position.Left} id="l3" className="custom-handle" style={{ top: '75%' }} />
       
       {data.icon && (
         isIconify ? (

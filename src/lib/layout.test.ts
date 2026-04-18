@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { getLayoutedElements } from './layout';
-import { Position } from 'reactflow';
 import type { Node, Edge } from 'reactflow';
 
 describe('getLayoutedElements', () => {
@@ -17,9 +16,6 @@ describe('getLayoutedElements', () => {
     
     const nodeA = layoutedNodes.find(n => n.id === 'A')!;
     const nodeB = layoutedNodes.find(n => n.id === 'B')!;
-    
-    expect(nodeA.sourcePosition).toBe(Position.Bottom);
-    expect(nodeB.targetPosition).toBe(Position.Top);
     
     // In vertical layout, B should be below A
     expect(nodeB.position.y).toBeGreaterThan(nodeA.position.y);
@@ -38,9 +34,6 @@ describe('getLayoutedElements', () => {
     
     const nodeA = layoutedNodes.find(n => n.id === 'A')!;
     const nodeB = layoutedNodes.find(n => n.id === 'B')!;
-    
-    expect(nodeA.sourcePosition).toBe(Position.Right);
-    expect(nodeB.targetPosition).toBe(Position.Left);
     
     // In horizontal layout, B should be to the right of A
     expect(nodeB.position.x).toBeGreaterThan(nodeA.position.x);

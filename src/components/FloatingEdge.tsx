@@ -3,15 +3,17 @@ import { useStore, getSmoothStepPath, EdgeLabelRenderer, BaseEdge } from 'reactf
 import type { EdgeProps } from 'reactflow';
 import { getEdgeParams } from '../lib/floatingEdge';
 
-function FloatingEdge({ source, target, markerEnd, style, label }: EdgeProps) {
+function FloatingEdge({ id, source, target, markerEnd, style, label }: EdgeProps) {
   const sourceNode = useStore(useCallback((store) => store.nodeInternals.get(source), [source]));
   const targetNode = useStore(useCallback((store) => store.nodeInternals.get(target), [target]));
+  const allEdges = useStore(useCallback((store) => store.edges, []));
+  const allNodes = useStore(useCallback((store) => Array.from(store.nodeInternals.values()), []));
 
   if (!sourceNode || !targetNode) {
     return null;
   }
 
-  const { sx, sy, tx, ty, sourcePos, targetPos } = getEdgeParams(sourceNode, targetNode);
+  const { sx, sy, tx, ty, sourcePos, targetPos } = getEdgeParams(sourceNode, targetNode, allEdges, id, allNodes);
 
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX: sx,

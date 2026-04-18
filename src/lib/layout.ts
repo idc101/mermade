@@ -135,8 +135,6 @@ export const getLayoutedElements = async (nodes: Node[], edges: Edge[], directio
 
     const result = [{
       ...originalNode,
-      targetPosition: isHorizontal ? Position.Left : Position.Top,
-      sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
       position: { x, y },
       style: {
         ...originalNode.style,
