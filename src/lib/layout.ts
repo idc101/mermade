@@ -1,4 +1,4 @@
-import ELK from 'elkjs/lib/elk.bundled.js';
+import ELK from 'elkjs/lib/elk-api';
 import { Position } from 'reactflow';
 import type { Node, Edge } from 'reactflow';
 
@@ -7,7 +7,7 @@ const elk = new ELK();
 const nodeWidth = 180;
 const nodeHeight = 60;
 
-export const getLayoutedElements = async (nodes: Node[], edges: Edge[], direction = 'DOWN') => {
+export const getLayoutedElements = async (nodes: Node[], edges: Edge[], direction = 'DOWN'): Promise<{ nodes: Node[], edges: Edge[] }> => {
   const isHorizontal = direction === 'RIGHT';
   
   // ELK expects a specific nested structure for hierarchical layout

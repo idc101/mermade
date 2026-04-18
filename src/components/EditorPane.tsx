@@ -5,7 +5,7 @@ interface EditorPaneProps {
   onTextChange: (text: string) => void;
   onAddNode: () => void;
   onAddSubgraph: () => void;
-  onAutoLayout: () => void;
+  onAutoLayout: () => Promise<void>;
   onExportPng: () => void;
   onExportSvg: () => void;
 }
