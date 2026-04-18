@@ -2,6 +2,42 @@ import type { Node, Edge } from 'reactflow';
 import type { CustomNodeData, SubgraphNodeData, VisualConfig } from '../types';
 import { CONFIG_DELIMITER } from '../constants';
 
+export function syncVisualConfigToText(
+  nodes: Node<CustomNodeData | SubgraphNodeData>[],
+  edges: Edge[],
+  oldText: string
+): string {
+  const parts = oldText.split(CONFIG_DELIMITER);
+  const semanticPart = parts[0].trim();
+
+  const config: VisualConfig = {
+    nodes: {},
+    edges: {},
+  };
+
+  nodes.forEach((node) => {
+    config.nodes[node.id] = {
+      x: Math.round(node.position.x),
+      y: Math.round(node.position.y),
+      width: node.style?.width ? Number(node.style.width) : undefined,
+      height: node.style?.height ? Number(node.style.height) : undefined,
+      color: node.data.color,
+      icon: 'icon' in node.data ? node.data.icon : undefined,
+    };
+  });
+
+  edges.forEach((edge, index) => {
+    // Try to preserve the existing ID structure or create a consistent one
+    const edgeId = edge.id || `${edge.source}-${edge.target}-${index}`;
+    config.edges[edgeId] = {
+      stroke: edge.style?.stroke as string,
+      animated: edge.animated,
+    };
+  });
+
+  return `${semanticPart}\n\n${CONFIG_DELIMITER}\n${JSON.stringify(config, null, 2)}`;
+}
+
 function getNodeDef(n: Node<CustomNodeData | SubgraphNodeData>) {
   const iconTag = 'icon' in n.data && n.data.icon ? `<icon icon="${n.data.icon}" /> ` : '';
   const label = n.data.label || n.id;
@@ -23,6 +59,9 @@ function getNodeDef(n: Node<CustomNodeData | SubgraphNodeData>) {
   return `${n.id}${leftBracket}${fullLabel}${rightBracket}`;
 }
 
+/**
+ * Fallback: Complete regeneration of Mermaid text if reconciliation is too complex
+ */
 export function buildMermaidText(
   nodes: Node<CustomNodeData | SubgraphNodeData>[],
   edges: Edge[],
@@ -32,7 +71,6 @@ export function buildMermaidText(
   const semanticPart = parts[0];
   const mermaidLines = semanticPart.trim().split('\n');
   
-  // Extract header (e.g. graph TD or flowchart TD)
   const header = (mermaidLines[0]?.trim().startsWith('graph') || mermaidLines[0]?.trim().startsWith('flowchart'))
     ? mermaidLines[0].trim()
     : 'flowchart TD';
@@ -55,33 +93,5 @@ export function buildMermaidText(
   if (edgeDefs) sections.push(edgeDefs);
 
   const semanticText = sections.join('\n\n');
-
-  const config: VisualConfig = {
-    nodes: {},
-    edges: {},
-  };
-
-  nodes.forEach((node) => {
-    config.nodes[node.id] = {
-      x: Math.round(node.position.x),
-      y: Math.round(node.position.y),
-      width: node.style?.width ? Number(node.style.width) : undefined,
-      height: node.style?.height ? Number(node.style.height) : undefined,
-      color: node.data.color,
-      icon: 'icon' in node.data ? node.data.icon : undefined,
-    };
-  });
-
-  edges.forEach((edge, index) => {
-    const id = edge.id.includes('-') && !isNaN(Number(edge.id.split('-').pop())) 
-      ? edge.id 
-      : `${edge.source}-${edge.target}-${index}`;
-      
-    config.edges[id] = {
-      stroke: edge.style?.stroke as string,
-      animated: edge.animated,
-    };
-  });
-
-  return `${semanticText.trim()}\n\n${CONFIG_DELIMITER}\n${JSON.stringify(config, null, 2)}`;
+  return syncVisualConfigToText(nodes, edges, semanticText);
 }

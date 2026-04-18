@@ -11,7 +11,10 @@ const elkOptions = {
   'elk.algorithm': 'layered',
   'elk.direction': 'DOWN',
   'elk.spacing.nodeNode': '80',
+  'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
   'elk.layered.spacing.nodeNodeBetweenLayers': '100',
+  'elk.spacing.edgeNode': '60',
+  'elk.layered.spacing.edgeNodeBetweenLayers': '60',
   'elk.padding': '[top=40,left=40,bottom=40,right=40]',
 };
 
@@ -24,6 +27,7 @@ export const getLayoutedElements = async (nodes: Node[], edges: Edge[], directio
     layoutOptions: {
       ...elkOptions,
       'elk.direction': elkDirection,
+      'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
     },
     children: [] as any[],
     edges: [] as any[],
@@ -58,7 +62,6 @@ export const getLayoutedElements = async (nodes: Node[], edges: Edge[], directio
       if (parent) {
         parent.children.push(elkNode);
       } else {
-        // Parent not found, put it in root
         elkGraph.children.push(elkNode);
       }
     } else {
@@ -66,12 +69,43 @@ export const getLayoutedElements = async (nodes: Node[], edges: Edge[], directio
     }
   });
 
-  // Add edges
+  // Find the lowest common ancestor for an edge
+  const getLCA = (sourceId: string, targetId: string): any => {
+    const getPath = (id: string) => {
+      const path: string[] = [];
+      let current = nodes.find(n => n.id === id);
+      while (current) {
+        path.unshift(current.id);
+        current = nodes.find(n => n.id === current?.parentNode);
+      }
+      return path;
+    };
+
+    const sourcePath = getPath(sourceId);
+    const targetPath = getPath(targetId);
+
+    let lcaId = 'root';
+    for (let i = 0; i < Math.min(sourcePath.length, sourcePath.length); i++) {
+      if (sourcePath[i] === targetPath[i]) {
+        // If the common node is a subgraph, it's a potential LCA
+        const node = nodes.find(n => n.id === sourcePath[i]);
+        if (node?.type === 'subgraphNode') {
+          lcaId = node.id;
+        }
+      } else {
+        break;
+      }
+    }
+
+    return lcaId === 'root' ? elkGraph : nodeMap.get(lcaId);
+  };
+
+  // Add edges to their LCA container
   edges.forEach((edge) => {
-    // We need to find the lowest common ancestor for the edge
-    // For simplicity, if we don't find it, we put it in root.
-    // ELK prefers edges to be at the level where they connect.
-    elkGraph.edges.push({
+    const container = getLCA(edge.source, edge.target);
+    if (!container.edges) container.edges = [];
+    
+    container.edges.push({
       id: edge.id,
       sources: [edge.source],
       targets: [edge.target],

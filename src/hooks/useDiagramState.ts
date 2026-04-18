@@ -13,7 +13,7 @@ import type {
   Connection,
 } from 'reactflow';
 import { parseMermaid, clearConfig } from '../lib/parser';
-import { buildMermaidText } from '../lib/serializer';
+import { buildMermaidText, syncVisualConfigToText } from '../lib/serializer';
 import { getLayoutedElements } from '../lib/layout';
 import type { CustomNodeData, SubgraphNodeData } from '../types';
 import { initialText, STORAGE_KEY } from '../constants';
@@ -40,8 +40,13 @@ export function useDiagramState() {
     }
 
     const updateLayout = async () => {
-      const { nodes: parsedNodes, edges: parsedEdges, config, mermaidText } = parseMermaid(text);
+      const { nodes: parsedNodes, edges: parsedEdges, config, mermaidText, success } = parseMermaid(text);
       
+      if (!success && text.trim().length > 0) {
+        // Parsing failed (e.g. while typing), don't update canvas
+        return;
+      }
+
       // Ensure all parsed edges use the floating type
       const floatingEdges = parsedEdges.map(edge => ({
         ...edge,
@@ -77,17 +82,25 @@ export function useDiagramState() {
     setText(newFullText);
   }, [text]);
 
+  const syncVisualToText = useCallback((newNodes: Node[], newEdges: Edge[]) => {
+    isInternalUpdate.current = true;
+    const newFullText = syncVisualConfigToText(newNodes, newEdges, text);
+    setText(newFullText);
+  }, [text]);
+
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => {
       setNodes((nds) => {
         const nextNodes = applyNodeChanges(changes, nds);
-        isInternalUpdate.current = true;
-        const newText = buildMermaidText(nextNodes, edges, text);
-        setText(newText);
+        const hasPositionChange = changes.some(c => c.type === 'position' || c.type === 'dimensions');
+        
+        if (hasPositionChange) {
+           syncVisualToText(nextNodes, edges);
+        }
         return nextNodes;
       });
     },
-    [edges, text]
+    [edges, syncVisualToText]
   );
 
   const onEdgesChange: OnEdgesChange = useCallback(
@@ -175,15 +188,17 @@ export function useDiagramState() {
         }
         return node;
       });
-      syncToText(nextNodes, edges);
+      syncVisualToText(nextNodes, edges);
       return nextNodes;
     });
-  }, [edges, syncToText]);
+  }, [edges, syncVisualToText]);
 
   const handleAutoLayout = useCallback(async () => {
     const cleanedText = clearConfig(text);
-    const { nodes: parsedNodes, edges: parsedEdges, mermaidText } = parseMermaid(cleanedText);
+    const { nodes: parsedNodes, edges: parsedEdges, mermaidText, success } = parseMermaid(cleanedText);
     
+    if (!success) return;
+
     const floatingEdges = parsedEdges.map(edge => ({
       ...edge,
       type: 'floating',

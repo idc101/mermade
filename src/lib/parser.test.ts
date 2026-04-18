@@ -10,6 +10,7 @@ graph TD
 `;
     const result = parseMermaid(mermaid);
     
+    expect(result.success).toBe(true);
     expect(result.nodes).toHaveLength(2);
     expect(result.edges).toHaveLength(1);
     
@@ -30,6 +31,7 @@ graph TD
 `;
     const result = parseMermaid(mermaid);
     
+    expect(result.success).toBe(true);
     expect(result.nodes).toHaveLength(3);
     
     const nodeA = result.nodes.find(n => n.id === 'A');
@@ -63,6 +65,7 @@ graph TD
     const result = parseMermaid(mermaid);
     
     // Nodes: A and SG1 (as a subgraph node)
+    expect(result.success).toBe(true);
     expect(result.nodes).toHaveLength(2);
     
     const sgNode = result.nodes.find(n => n.type === 'subgraphNode');
@@ -108,6 +111,7 @@ graph TD
     const mermaid = `invalid mermaid text`;
     const result = parseMermaid(mermaid);
     
+    expect(result.success).toBe(false);
     expect(result.nodes).toEqual([]);
     expect(result.edges).toEqual([]);
   });

@@ -50,4 +50,5 @@ export interface DiagramData {
   edges: Edge[];
   mermaidText: string;
   config: VisualConfig;
+  success: boolean;
 }

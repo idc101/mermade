@@ -26,6 +26,7 @@ export function parseMermaid(text: string): DiagramData {
 
   const nodes: Node<CustomNodeData | SubgraphNodeData>[] = [];
   const edges: Edge[] = [];
+  let success = false;
 
   // Pre-process mermaidText to handle <icon /> tags
   const iconRegex = /<icon\s+icon=["']([^"']+)["']\s*\/>/g;
@@ -35,6 +36,11 @@ export function parseMermaid(text: string): DiagramData {
     const ast = parse(strippedMermaidText) as unknown as MermaidAST;
     const astNodes = ast.nodes;
     const astSubgraphs = ast.subgraphs;
+    
+    // If we have nodes or subgraphs, consider it a success
+    if ((astNodes && astNodes.size > 0) || (astSubgraphs && astSubgraphs.length > 0)) {
+      success = true;
+    }
 
     if (astSubgraphs) {
       astSubgraphs.forEach((sg) => {
@@ -52,7 +58,8 @@ export function parseMermaid(text: string): DiagramData {
           style: { 
             width: visual.width ?? 200, 
             height: visual.height ?? 150 
-          }
+          },
+          zIndex: 1,
         };
         nodes.push(subgraphNode);
       });
@@ -82,7 +89,8 @@ export function parseMermaid(text: string): DiagramData {
                 shape: astNode.shape
             },
             position: { x: visual.x ?? 0, y: visual.y ?? 0 },
-            style: visual.width ? { width: visual.width, height: visual.height } : undefined
+            style: visual.width ? { width: visual.width, height: visual.height } : undefined,
+            zIndex: 10,
           };
           
           if (astSubgraphs) {
@@ -110,6 +118,7 @@ export function parseMermaid(text: string): DiagramData {
             label: link.text?.text || '',
             animated: visual.animated ?? false,
             style: visual.stroke ? { stroke: visual.stroke } : undefined,
+            zIndex: 1000,
           });
         });
     }
@@ -118,7 +127,7 @@ export function parseMermaid(text: string): DiagramData {
     console.error('Failed to parse mermaid text:', e);
   }
 
-  return { nodes, edges, mermaidText, config };
+  return { nodes, edges, mermaidText, config, success };
 }
 
 export function clearConfig(text: string): string {
