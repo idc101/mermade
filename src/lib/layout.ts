@@ -21,9 +21,9 @@ const calculateNodeSize = (label: string, hasIcon: boolean) => {
   const iconSpace = hasIcon ? 24 : 0;
   const width = Math.max(120, (label.length * charWidth) + padding + iconSpace);
   const height = 50;
-  return { 
-    width: Math.round(width / 5) * 5, 
-    height: Math.round(height / 5) * 5 
+  return {
+    width: Math.round(width / 5) * 5,
+    height: Math.round(height / 5) * 5
   };
 };
 
@@ -57,8 +57,8 @@ export const getLayoutedElements = async (nodes: Node[], edges: Edge[], directio
       width: Math.round((isSubgraph ? (node.style?.width as number || 0) : (node.style?.width as number || dynamicWidth)) / 5) * 5,
       height: Math.round((isSubgraph ? (node.style?.height as number || 0) : (node.style?.height as number || dynamicHeight)) / 5) * 5,
       children: isSubgraph ? [] : undefined,
-      layoutOptions: isSubgraph ? { 
-        'elk.padding': '[top=100,left=40,bottom=40,right=40]', // Extra space for title
+      layoutOptions: isSubgraph ? {
+        'elk.padding': '[top=40,left=40,bottom=0,right=40]', // Extra space for title
       } : {},
     };
 
