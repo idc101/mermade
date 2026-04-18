@@ -9,7 +9,7 @@ const isValidLucideIcon = (iconName: string): iconName is keyof typeof LucideIco
   return iconName in LucideIcons;
 };
 
-const CustomNode = ({ data, selected }: NodeProps<CustomNodeData>) => {
+const CustomNode = ({ data, selected, style }: NodeProps<CustomNodeData>) => {
   const isIconify = data.icon && data.icon.includes(':');
   const LucideIcon = data.icon && !isIconify && isValidLucideIcon(data.icon) 
     ? (LucideIcons[data.icon] as React.ElementType) 
@@ -17,12 +17,16 @@ const CustomNode = ({ data, selected }: NodeProps<CustomNodeData>) => {
 
   return (
     <div
-      className={`custom-node px-4 py-3 rounded-sm flex items-center justify-center gap-2 ${
-        selected ? 'selected' : ''
-      }`}
+      className={`custom-node rounded-sm ${selected ? 'selected' : ''}`}
       style={{
-        minWidth: '120px',
+        ...style,
         position: 'relative',
+        backgroundColor: data.color || '#fff2cc',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+        padding: '0 10px',
       }}
     >
       {/* 4 Handles for Floating Edges */}
@@ -33,12 +37,15 @@ const CustomNode = ({ data, selected }: NodeProps<CustomNodeData>) => {
       
       {data.icon && (
         isIconify ? (
-          <IconifyIcon icon={data.icon} width={16} height={16} />
+          <IconifyIcon icon={data.icon} width={16} height={16} className="flex-shrink-0" />
         ) : LucideIcon ? (
-          <LucideIcon size={16} />
+          <LucideIcon size={16} className="flex-shrink-0" />
         ) : null
       )}
-      <div className="text-center font-medium text-sm text-black leading-tight">
+      <div 
+        className="text-center font-medium text-sm text-black leading-tight truncate"
+        style={{ textAlign: 'center', flexGrow: 0 }}
+      >
         {data.label}
       </div>
     </div>

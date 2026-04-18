@@ -4,9 +4,6 @@ import type { Node, Edge } from 'reactflow';
 
 const elk = new ELK();
 
-const nodeWidth = 180;
-const nodeHeight = 60;
-
 const elkOptions = {
   'elk.algorithm': 'layered',
   'elk.direction': 'DOWN',
@@ -16,6 +13,15 @@ const elkOptions = {
   'elk.spacing.edgeNode': '60',
   'elk.layered.spacing.edgeNodeBetweenLayers': '60',
   'elk.padding': '[top=40,left=40,bottom=40,right=40]',
+};
+
+const calculateNodeSize = (label: string, hasIcon: boolean) => {
+  const charWidth = 9;
+  const padding = 40;
+  const iconSpace = hasIcon ? 24 : 0;
+  const width = Math.max(120, (label.length * charWidth) + padding + iconSpace);
+  const height = 50;
+  return { width, height };
 };
 
 export const getLayoutedElements = async (nodes: Node[], edges: Edge[], direction = 'DOWN') => {
@@ -39,13 +45,14 @@ export const getLayoutedElements = async (nodes: Node[], edges: Edge[], directio
   // Initialize all nodes in the map first
   nodes.forEach((node) => {
     const isSubgraph = node.type === 'subgraphNode';
+    const { width: dynamicWidth, height: dynamicHeight } = isSubgraph 
+      ? { width: 0, height: 0 } 
+      : calculateNodeSize(node.data.label || '', !!node.data.icon);
+
     const elkNode = {
       id: node.id,
-      // ELK requires an initial width/height for all nodes. 
-      // For compound nodes (subgraphs), it will calculate the size from children, 
-      // but providing 0 prevents a "TypeError: Cannot read properties of null (reading 'pe')"
-      width: isSubgraph ? node.width || 0 : (node.width || nodeWidth),
-      height: isSubgraph ? node.height || 0 : (node.height || nodeHeight),
+      width: isSubgraph ? (node.style?.width as number || 0) : (node.style?.width as number || dynamicWidth),
+      height: isSubgraph ? (node.style?.height as number || 0) : (node.style?.height as number || dynamicHeight),
       children: isSubgraph ? [] : undefined,
       layoutOptions: isSubgraph ? { 
         'elk.padding': '[top=100,left=40,bottom=40,right=40]', // Extra space for title
