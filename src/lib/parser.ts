@@ -61,7 +61,7 @@ export function parseMermaid(text: string): DiagramData {
     if (astNodes) {
         astNodes.forEach((astNode, id) => {
           const visual = config.nodes[id] || {};
-          let label = astNode.text?.text || id;
+          const label = astNode.text?.text || id;
           let icon = visual.icon;
 
           if (!icon) {

@@ -61,7 +61,11 @@ body {
   border: 1px solid #9673a6 !important;
   background-color: rgba(225, 213, 231, 0.1) !important;
   border-radius: 4px !important;
-  pointer-events: none !important;
+}
+
+.react-flow__node-subgraphNode.selected {
+  border-color: #8a2be2 !important;
+  box-shadow: 0 0 15px rgba(138, 43, 226, 0.2);
 }
 
 .react-flow__node-subgraphNode .custom-handle {
@@ -74,6 +78,10 @@ body {
   color: #000;
   text-align: center;
   width: 100%;
+}
+
+.pointer-events-none {
+  pointer-events: none;
 }
 
 /* Edge Label Styles */
