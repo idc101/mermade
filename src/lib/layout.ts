@@ -1,8 +1,8 @@
-import ELK from 'elkjs/lib/elk-api';
+import ELK from 'elkjs/lib/elk.bundled.js';
 import { Position } from 'reactflow';
 import type { Node, Edge } from 'reactflow';
 
-const elk = new ELK();
+const elk = new (ELK as any).default ? new (ELK as any).default() : new (ELK as any)();
 
 const nodeWidth = 180;
 const nodeHeight = 60;
