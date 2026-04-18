@@ -37,3 +37,17 @@ export interface SubgraphNodeData {
   label: string;
   color?: string;
 }
+
+export interface VisualConfig {
+  nodes: Record<string, { x: number; y: number; width?: number; height?: number; color?: string; icon?: string }>;
+  edges: Record<string, { stroke?: string; animated?: boolean }>;
+}
+
+import type { Node, Edge } from 'reactflow';
+
+export interface DiagramData {
+  nodes: Node[];
+  edges: Edge[];
+  mermaidText: string;
+  config: VisualConfig;
+}
