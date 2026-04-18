@@ -1,4 +1,5 @@
 import ReactFlow, { Background, Controls, ConnectionMode } from 'reactflow';
+import { useMemo } from 'react';
 import type { 
   Node, 
   Edge, 
@@ -9,7 +10,7 @@ import type {
   OnEdgesDelete 
 } from 'reactflow';
 import FloatingConnectionLine from './FloatingConnectionLine';
-import { nodeTypes, edgeTypes, defaultEdgeOptions } from '../constants';
+import { nodeTypes as nodeTypesConst, edgeTypes as edgeTypesConst, defaultEdgeOptions } from '../constants';
 import { Sidebar } from './Sidebar';
 import type { CustomNodeData, SubgraphNodeData } from '../types';
 
@@ -38,6 +39,9 @@ export function FlowCanvas({
   selectedElement,
   onUpdateNode,
 }: FlowCanvasProps) {
+  const nodeTypes = useMemo(() => nodeTypesConst, []);
+  const edgeTypes = useMemo(() => edgeTypesConst, []);
+
   const selectedNode = selectedElement && 'data' in selectedElement 
     ? nodes.find(n => n.id === selectedElement.id) || null 
     : null;
