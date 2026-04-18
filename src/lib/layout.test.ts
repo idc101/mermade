@@ -58,9 +58,9 @@ describe('getLayoutedElements', () => {
     const nodeA = layoutedNodes.find(n => n.id === 'A')!;
     
     // Child position should be relative to parent
-    // The current layout logic uses a padding (40, 60)
-    expect(nodeA.position.x).toBeGreaterThanOrEqual(0);
-    expect(nodeA.position.y).toBeGreaterThanOrEqual(0);
+    // The current layout logic uses a padding (top=100, left=40)
+    expect(nodeA.position.x).toBeGreaterThanOrEqual(40);
+    expect(nodeA.position.y).toBeGreaterThanOrEqual(100);
     
     // The subgraph should be sized to fit its children
     expect(Number(sgNode.style?.width)).toBeGreaterThan(0);

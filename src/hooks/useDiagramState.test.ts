@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useDiagramState } from './useDiagramState';
 import { STORAGE_KEY, initialText } from '../constants';
 
-// Mock getLayoutedElements as it might be slow or depend on dagre
+// Mock getLayoutedElements as it might be slow or depend on ELK
 vi.mock('../lib/layout', () => ({
   getLayoutedElements: vi.fn(async (nodes, edges) => ({ nodes, edges })),
 }));
