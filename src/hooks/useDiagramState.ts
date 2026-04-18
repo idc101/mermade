@@ -124,6 +124,7 @@ export function useDiagramState() {
   const onNodesDelete = useCallback(
     (deletedNodes: Node[]) => {
       setNodes((nds) => {
+        const deletedIds = new Set(deletedNodes.map(n => n.id));
         const childIdsToDelete = new Set<string>();
         deletedNodes.forEach(dn => {
           if (dn.type === 'subgraphNode') {
@@ -136,12 +137,13 @@ export function useDiagramState() {
         });
 
         const nextNodes = nds.filter((node) => 
-          !deletedNodes.some((dn) => dn.id === node.id) && 
+          !deletedIds.has(node.id) && 
           !childIdsToDelete.has(node.id)
         );
         
         setEdges(eds => {
            const nextEdges = eds.filter(edge => 
+             !deletedIds.has(edge.source) && !deletedIds.has(edge.target) &&
              !childIdsToDelete.has(edge.source) && !childIdsToDelete.has(edge.target)
            );
            syncToText(nextNodes, nextEdges);
