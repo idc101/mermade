@@ -12,7 +12,8 @@ import type {
   Edge,
   Connection,
 } from 'reactflow';
-import { parseMermaid, serializeMermaid, clearConfig } from '../lib/parser';
+import { parseMermaid, clearConfig } from '../lib/parser';
+import { buildMermaidText } from '../lib/serializer';
 import { getLayoutedElements } from '../lib/layout';
 import type { CustomNodeData, SubgraphNodeData } from '../types';
 import { initialText, STORAGE_KEY } from '../constants';
@@ -64,44 +65,7 @@ export function useDiagramState() {
 
   const syncToText = useCallback((newNodes: Node[], newEdges: Edge[]) => {
     isInternalUpdate.current = true;
-    const parts = text.split('%% --- arrows-config --- %%');
-    const semanticPart = parts[0];
-    const mermaidLines = semanticPart.trim().split('\n');
-    const header = mermaidLines[0] || 'flowchart TD';
-
-    const getNodeDef = (n: Node) => {
-      const iconTag = n.data.icon ? `<icon icon="${n.data.icon}" /> ` : '';
-      const label = n.data.label || n.id;
-      const fullLabel = `${iconTag}${label}`.trim();
-      
-      let leftBracket = '[';
-      let rightBracket = ']';
-      
-      if (n.data.shape === 'database') {
-        leftBracket = '[(';
-        rightBracket = ')]';
-      } else if (n.data.shape === 'diamond') {
-        leftBracket = '{';
-        rightBracket = '}';
-      }
-      
-      return `  ${n.id}${leftBracket}${fullLabel}${rightBracket}`;
-    };
-
-    const subgraphs = newNodes.filter(n => n.type === 'subgraphNode');
-    const rootNodes = newNodes.filter(n => !n.parentNode && n.type !== 'subgraphNode');
-
-    const subgraphDefs = subgraphs.map(sg => {
-      const children = newNodes.filter(n => n.parentNode === sg.id);
-      const childDefs = children.map(n => `    ${getNodeDef(n).trim()}`).join('\n');
-      return `  subgraph ${sg.id}[${sg.data.label}]\n${childDefs}\n  end`;
-    }).join('\n');
-    
-    const rootNodeDefs = rootNodes.map(n => getNodeDef(n)).join('\n');
-    const edgeDefs = newEdges.map(e => `  ${e.source} -->${e.label ? `|${e.label}|` : ''} ${e.target}`).join('\n');
-    
-    const newMermaidPart = `${header}\n${subgraphDefs}\n${rootNodeDefs}\n\n${edgeDefs}`;
-    const newFullText = serializeMermaid(newNodes, newEdges, newMermaidPart);
+    const newFullText = buildMermaidText(newNodes, newEdges, text);
     setText(newFullText);
   }, [text]);
 
@@ -110,8 +74,7 @@ export function useDiagramState() {
       setNodes((nds) => {
         const nextNodes = applyNodeChanges(changes, nds);
         isInternalUpdate.current = true;
-        const semanticPart = text.split('%% --- arrows-config --- %%')[0];
-        const newText = serializeMermaid(nextNodes, edges, semanticPart);
+        const newText = buildMermaidText(nextNodes, edges, text);
         setText(newText);
         return nextNodes;
       });
@@ -226,7 +189,7 @@ export function useDiagramState() {
     setEdges(layoutedEdges);
     
     isInternalUpdate.current = true;
-    const newText = serializeMermaid(layoutedNodes, layoutedEdges, cleanedText);
+    const newText = buildMermaidText(layoutedNodes, layoutedEdges, cleanedText);
     setText(newText);
   }, [text]);
 

@@ -7,10 +7,9 @@ import type {
   VisualConfig,
   DiagramData 
 } from '../types';
+import { CONFIG_DELIMITER } from '../constants';
 
 export { type VisualConfig, type DiagramData };
-
-const CONFIG_DELIMITER = '%% --- arrows-config --- %%';
 
 export function parseMermaid(text: string): DiagramData {
   const parts = text.split(CONFIG_DELIMITER);
@@ -120,33 +119,6 @@ export function parseMermaid(text: string): DiagramData {
   }
 
   return { nodes, edges, mermaidText, config };
-}
-
-export function serializeMermaid(nodes: Node<CustomNodeData | SubgraphNodeData>[], edges: Edge[], originalMermaidText: string): string {
-  const config: VisualConfig = {
-    nodes: {},
-    edges: {},
-  };
-
-  nodes.forEach((node) => {
-    config.nodes[node.id] = {
-      x: Math.round(node.position.x),
-      y: Math.round(node.position.y),
-      width: node.style?.width ? Number(node.style.width) : undefined,
-      height: node.style?.height ? Number(node.style.height) : undefined,
-      color: node.data.color,
-      icon: 'icon' in node.data ? node.data.icon : undefined,
-    };
-  });
-
-  edges.forEach((edge) => {
-    config.edges[edge.id] = {
-      stroke: edge.style?.stroke as string,
-      animated: edge.animated,
-    };
-  });
-
-  return `${originalMermaidText.trim()}\n\n${CONFIG_DELIMITER}\n${JSON.stringify(config, null, 2)}`;
 }
 
 export function clearConfig(text: string): string {
