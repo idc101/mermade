@@ -12,15 +12,15 @@
   "dependencies": {
     "@iconify/react": "^6.0.2",
     "@mermaid-js/parser": "^1.1.0",
-    "elkjs": "^0.11.1",
+    "@types/dagre": "^0.7.54",
+    "dagre": "^0.8.5",
     "html-to-image": "^1.11.13",
     "lucide-react": "^1.8.0",
     "mermaid": "^11.14.0",
     "mermaid-ast": "^0.8.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "reactflow": "^11.11.4",
-    "web-worker": "^1.5.0"
+    "reactflow": "^11.11.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

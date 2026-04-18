@@ -1,100 +1,127 @@
-import ELK from 'elkjs/lib/elk.bundled.js';
+import dagre from 'dagre';
 import { Position } from 'reactflow';
 import type { Node, Edge } from 'reactflow';
-
-const elk = new (ELK as any).default ? new (ELK as any).default() : new (ELK as any)();
 
 const nodeWidth = 180;
 const nodeHeight = 60;
 
-export const getLayoutedElements = async (nodes: Node[], edges: Edge[], direction = 'DOWN'): Promise<{ nodes: Node[], edges: Edge[] }> => {
-  const isHorizontal = direction === 'RIGHT';
+export const getLayoutedElements = async (nodes: Node[], edges: Edge[], direction = 'DOWN') => {
+  const isHorizontal = direction === 'RIGHT' || direction === 'LR';
+  const dagreDirection = isHorizontal ? 'LR' : 'TB';
   
-  // ELK expects a specific nested structure for hierarchical layout
-  // We need to build a tree of nodes
-  const elkNodes: any[] = [];
-  const elkEdges: any[] = edges.map(edge => ({
-    id: edge.id,
-    sources: [edge.source],
-    targets: [edge.target],
-  }));
+  const dagreGraph = new dagre.graphlib.Graph({ compound: true });
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+  
+  dagreGraph.setGraph({ 
+    rankdir: dagreDirection,
+    ranksep: 100,
+    nodesep: 80,
+  });
 
-  // Create a map for quick access
-  const nodeMap = new Map<string, any>();
-
-  // Initialize elk nodes
+  // 1. Setup nodes in dagre
   nodes.forEach((node) => {
     const isSubgraph = node.type === 'subgraphNode';
-    const elkNode = {
-      id: node.id,
-      width: isSubgraph ? undefined : (node.style?.width as number ?? nodeWidth),
-      height: isSubgraph ? undefined : (node.style?.height as number ?? nodeHeight),
-      children: isSubgraph ? [] : undefined,
-      layoutOptions: {
-        'elk.padding': '[top=60,left=40,bottom=40,right=40]',
-      },
-    };
-    nodeMap.set(node.id, elkNode);
-  });
-
-  // Build the hierarchy
-  nodes.forEach((node) => {
-    const elkNode = nodeMap.get(node.id);
-    if (node.parentNode) {
-      const parent = nodeMap.get(node.parentNode);
-      if (parent) {
-        parent.children.push(elkNode);
-      } else {
-        elkNodes.push(elkNode);
-      }
+    if (isSubgraph) {
+       dagreGraph.setNode(node.id, { width: 0, height: 0 }); // Size will be determined by children
     } else {
-      elkNodes.push(elkNode);
+       dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
     }
   });
 
-  const graph = {
-    id: 'root',
-    layoutOptions: {
-      'elk.algorithm': 'layered',
-      'elk.direction': direction,
-      'elk.spacing.nodeNode': '80',
-      'elk.layered.spacing.nodeNodeLayered': '80',
-      'elk.spacing.edgeNode': '50',
-      'elk.layered.spacing.edgeEdgeLayered': '50',
-      'elk.spacing.edgeEdge': '50',
-      'elk.padding': '[top=50,left=50,bottom=50,right=50]',
-    },
-    children: elkNodes,
-    edges: elkEdges,
-  };
+  // 2. Set parents
+  nodes.forEach((node) => {
+    if (node.parentNode) {
+      dagreGraph.setParent(node.id, node.parentNode);
+    }
+  });
 
-  const layoutedGraph = await elk.layout(graph);
+  // 3. Setup edges in dagre
+  edges.forEach((edge) => {
+    dagreGraph.setEdge(edge.source, edge.target);
+  });
 
-  // Flatten the nodes back and apply positions
-  const newNodes: Node[] = [];
+  // 4. Run layout
+  dagre.layout(dagreGraph);
+
+  // 5. Pre-calculate subgraph bounds manually based on children's final dagre positions
+  // Dagre's compound layout gives children absolute positions.
+  const subgraphBounds = new Map<string, { width: number; height: number; left: number; top: number }>();
   
-  const processElkNode = (elkNode: any) => {
-    const originalNode = nodes.find(n => n.id === elkNode.id);
-    if (!originalNode) return;
+  // Sort subgraphs by depth (if they were nested, but we only have 1 level for now)
+  const subgraphs = nodes.filter(n => n.type === 'subgraphNode');
+  
+  subgraphs.forEach(sg => {
+    const children = nodes.filter(n => n.parentNode === sg.id);
+    if (children.length > 0) {
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      children.forEach(child => {
+        const dNode = dagreGraph.node(child.id);
+        const w = dNode.width || nodeWidth;
+        const h = dNode.height || nodeHeight;
+        minX = Math.min(minX, dNode.x - w / 2);
+        minY = Math.min(minY, dNode.y - h / 2);
+        maxX = Math.max(maxX, dNode.x + w / 2);
+        maxY = Math.max(maxY, dNode.y + h / 2);
+      });
 
-    newNodes.push({
-      ...originalNode,
-      position: { x: elkNode.x, y: elkNode.y },
-      style: {
-        ...originalNode.style,
-        width: elkNode.width,
-        height: elkNode.height,
-      },
+      const padding = 40;
+      const topPadding = 60; // Extra space for title
+      
+      const width = (maxX - minX) + padding * 2;
+      const height = (maxY - minY) + padding + topPadding;
+      const left = minX - padding;
+      const top = minY - topPadding;
+      
+      subgraphBounds.set(sg.id, { width, height, left, top });
+    } else {
+      subgraphBounds.set(sg.id, { width: 200, height: 150, left: 0, top: 0 });
+    }
+  });
+
+  // 6. Build final layouted nodes with correct relative positioning
+  const layoutedNodes = nodes.map((node) => {
+    const nodeWithPosition = dagreGraph.node(node.id);
+    const isSubgraph = node.type === 'subgraphNode';
+    
+    let width, height, absLeft, absTop;
+
+    if (isSubgraph) {
+      const bounds = subgraphBounds.get(node.id)!;
+      width = bounds.width;
+      height = bounds.height;
+      absLeft = bounds.left;
+      absTop = bounds.top;
+    } else {
+      width = nodeWithPosition.width || nodeWidth;
+      height = nodeWithPosition.height || nodeHeight;
+      absLeft = nodeWithPosition.x - width / 2;
+      absTop = nodeWithPosition.y - height / 2;
+    }
+
+    let x = absLeft;
+    let y = absTop;
+
+    if (node.parentNode) {
+      const pBounds = subgraphBounds.get(node.parentNode);
+      if (pBounds) {
+        // Child position is relative to its parent's top-left in ReactFlow
+        x = absLeft - pBounds.left;
+        y = absTop - pBounds.top;
+      }
+    }
+
+    return {
+      ...node,
       targetPosition: isHorizontal ? Position.Left : Position.Top,
       sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
-    });
+      position: { x, y },
+      style: { 
+        ...node.style,
+        width, 
+        height 
+      },
+    };
+  });
 
-    if (elkNode.children) {
-      elkNode.children.forEach((child: any) => processElkNode(child));
-    }
-  };
-
-  layoutedGraph.children?.forEach((child: any) => processElkNode(child));
-
-  return { nodes: newNodes, edges };
+  return { nodes: layoutedNodes, edges };
 };
