@@ -99,7 +99,7 @@ export function useDiagramState() {
     (params: Connection) => {
       if (!params.source || !params.target) return;
       
-      const edgeId = `${params.source}-${params.target}`;
+      const edgeId = `${params.source}-${params.target}-${Date.now()}`;
       const newEdge: Edge = {
         ...params,
         id: edgeId,

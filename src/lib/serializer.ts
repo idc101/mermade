@@ -72,8 +72,12 @@ export function buildMermaidText(
     };
   });
 
-  edges.forEach((edge) => {
-    config.edges[edge.id] = {
+  edges.forEach((edge, index) => {
+    const id = edge.id.includes('-') && !isNaN(Number(edge.id.split('-').pop())) 
+      ? edge.id 
+      : `${edge.source}-${edge.target}-${index}`;
+      
+    config.edges[id] = {
       stroke: edge.style?.stroke as string,
       animated: edge.animated,
     };

@@ -99,9 +99,9 @@ export function parseMermaid(text: string): DiagramData {
 
     const astLinks = ast.links;
     if (astLinks) {
-        astLinks.forEach((link) => {
-          const edgeId = `${link.source}-${link.target}`;
-          const visual = config.edges[edgeId] || {};
+        astLinks.forEach((link, index) => {
+          const edgeId = `${link.source}-${link.target}-${index}`;
+          const visual = config.edges[edgeId] || config.edges[`${link.source}-${link.target}`] || {};
           
           edges.push({
             id: edgeId,
