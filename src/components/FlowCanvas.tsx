@@ -62,9 +62,11 @@ export function FlowCanvas({
         connectionLineComponent={FloatingConnectionLine}
         defaultEdgeOptions={defaultEdgeOptions}
         connectionMode={ConnectionMode.Loose}
+        snapToGrid={true}
+        snapGrid={[5, 5]}
         fitView
       >
-        <Background />
+        <Background gap={20} size={1} />
         <Controls />
         <Sidebar selectedNode={selectedNode} onUpdateNode={onUpdateNode} />
       </ReactFlow>

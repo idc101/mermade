@@ -21,7 +21,10 @@ const calculateNodeSize = (label: string, hasIcon: boolean) => {
   const iconSpace = hasIcon ? 24 : 0;
   const width = Math.max(120, (label.length * charWidth) + padding + iconSpace);
   const height = 50;
-  return { width, height };
+  return { 
+    width: Math.round(width / 5) * 5, 
+    height: Math.round(height / 5) * 5 
+  };
 };
 
 export const getLayoutedElements = async (nodes: Node[], edges: Edge[], direction = 'DOWN') => {
@@ -45,19 +48,20 @@ export const getLayoutedElements = async (nodes: Node[], edges: Edge[], directio
   // Initialize all nodes in the map first
   nodes.forEach((node) => {
     const isSubgraph = node.type === 'subgraphNode';
-    const { width: dynamicWidth, height: dynamicHeight } = isSubgraph 
-      ? { width: 0, height: 0 } 
+    const { width: dynamicWidth, height: dynamicHeight } = isSubgraph
+      ? { width: 0, height: 0 }
       : calculateNodeSize(node.data.label || '', !!node.data.icon);
 
     const elkNode = {
       id: node.id,
-      width: isSubgraph ? (node.style?.width as number || 0) : (node.style?.width as number || dynamicWidth),
-      height: isSubgraph ? (node.style?.height as number || 0) : (node.style?.height as number || dynamicHeight),
+      width: Math.round((isSubgraph ? (node.style?.width as number || 0) : (node.style?.width as number || dynamicWidth)) / 5) * 5,
+      height: Math.round((isSubgraph ? (node.style?.height as number || 0) : (node.style?.height as number || dynamicHeight)) / 5) * 5,
       children: isSubgraph ? [] : undefined,
       layoutOptions: isSubgraph ? { 
         'elk.padding': '[top=100,left=40,bottom=40,right=40]', // Extra space for title
       } : {},
     };
+
     nodeMap.set(node.id, elkNode);
   });
 
@@ -111,7 +115,7 @@ export const getLayoutedElements = async (nodes: Node[], edges: Edge[], directio
   edges.forEach((edge) => {
     const container = getLCA(edge.source, edge.target);
     if (!container.edges) container.edges = [];
-    
+
     container.edges.push({
       id: edge.id,
       sources: [edge.source],
@@ -127,11 +131,11 @@ export const getLayoutedElements = async (nodes: Node[], edges: Edge[], directio
     if (!originalNode) return [];
 
     const isSubgraph = originalNode.type === 'subgraphNode';
-    
+
     // ReactFlow positions are relative to parent for children
     // ELK positions are relative to parent
-    const x = elkNode.x;
-    const y = elkNode.y;
+    const x = Math.round(elkNode.x / 5) * 5;
+    const y = Math.round(elkNode.y / 5) * 5;
 
     const result = [{
       ...originalNode,
