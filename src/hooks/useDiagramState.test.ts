@@ -66,9 +66,10 @@ describe('useDiagramState', () => {
       ]);
     });
 
-    // It should now contain the config delimiter and JSON
-    expect(result.current.text).toContain('mermade-config');
-    expect(result.current.text).toContain('"x": 100');
+    // It should now contain the YAML frontmatter
+    expect(result.current.text).toMatch(/^---\n/);
+    expect(result.current.text).toContain('mermade:');
+    expect(result.current.text).toContain('x: 100');
   });
 
   it('should add a new edge via onConnect and sync to text', async () => {
@@ -122,7 +123,7 @@ describe('useDiagramState', () => {
      });
 
      // Text should NOT have config (because it matches the auto-layout baseline)
-     expect(result.current.text).not.toContain('mermade-config');
+     expect(result.current.text).not.toContain('mermade:');
   });
 
   it('should remove config when node is moved back to its baseline position', async () => {
@@ -143,7 +144,7 @@ describe('useDiagramState', () => {
         { id: 'A', type: 'position', position: { x: baselineX + 100, y: baselineY + 100 }, dragging: false },
       ]);
     });
-    expect(result.current.text).toContain('mermade-config');
+    expect(result.current.text).toContain('mermade:');
 
     // Move it back
     act(() => {
@@ -152,7 +153,7 @@ describe('useDiagramState', () => {
       ]);
     });
     
-    // It should NO LONGER contain mermade-config
-    expect(result.current.text).not.toContain('mermade-config');
+    // It should NO LONGER contain mermade config
+    expect(result.current.text).not.toContain('mermade:');
   });
 });

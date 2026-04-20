@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
+import yaml from 'js-yaml';
 import { buildMermaidText } from './serializer';
-import { CONFIG_DELIMITER } from '../constants';
 import type { Node, Edge } from 'reactflow';
 import type { CustomNodeData, SubgraphNodeData } from '../types';
 
 describe('buildMermaidText', () => {
-  it('should serialize basic nodes and edges', () => {
+  it('should serialize basic nodes and edges with YAML frontmatter', () => {
     const nodes: Node<CustomNodeData>[] = [
       { id: 'A', position: { x: 10, y: 20 }, data: { label: 'Node A' }, type: 'customNode' },
       { id: 'B', position: { x: 100, y: 200 }, data: { label: 'Node B' }, type: 'customNode' },
@@ -21,21 +21,25 @@ describe('buildMermaidText', () => {
     expect(result).toContain('A[Node A]');
     expect(result).toContain('B[Node B]');
     expect(result).toContain('A -->|to| B');
-    expect(result).toContain(CONFIG_DELIMITER);
+    expect(result).toMatch(/^---\n/);
+    expect(result).toMatch(/\n---\n/);
     
-    const configPart = result.split(CONFIG_DELIMITER)[1].trim();
-    const config = JSON.parse(configPart);
-    expect(config.nodes.A).toEqual(expect.objectContaining({ x: 10, y: 20 }));
-    expect(config.nodes.B).toEqual(expect.objectContaining({ x: 100, y: 200 }));
+    const frontmatterMatch = result.match(/^---\n([\s\S]*?)\n---/);
+    expect(frontmatterMatch).toBeTruthy();
+    const config = yaml.load(frontmatterMatch![1]) as any;
+    expect(config.mermade.nodes.A).toEqual(expect.objectContaining({ x: 10, y: 20 }));
+    expect(config.mermade.nodes.B).toEqual(expect.objectContaining({ x: 100, y: 200 }));
   });
 
   it('should serialize nodes with icons', () => {
     const nodes: Node<CustomNodeData>[] = [
-      { id: 'A', position: { x: 0, y: 0 }, data: { label: 'User', icon: 'mdi:user' }, type: 'customNode' },
+      { id: 'A', position: { x: 0, y: 0 }, data: { label: 'User', icon: 'fa:user' }, type: 'customNode' },
+      { id: 'B', position: { x: 0, y: 0 }, data: { label: 'Server', icon: 'server' }, type: 'customNode' },
     ];
     const result = buildMermaidText(nodes, [], '');
     
-    expect(result).toContain('A[<icon icon="mdi:user" /> User]');
+    expect(result).toContain('A[fa:user User]');
+    expect(result).toContain('B[icon:server Server]');
   });
 
   it('should serialize different node shapes', () => {
@@ -61,7 +65,7 @@ describe('buildMermaidText', () => {
     expect(result).toContain('end');
   });
 
-  it('should include visual properties in config', () => {
+  it('should include visual properties in config YAML', () => {
     const nodes: Node<CustomNodeData>[] = [
       { 
         id: 'A', 
@@ -76,16 +80,16 @@ describe('buildMermaidText', () => {
     ];
     
     const result = buildMermaidText(nodes, edges, '');
-    const config = JSON.parse(result.split(CONFIG_DELIMITER)[1].trim());
+    const frontmatterMatch = result.match(/^---\n([\s\S]*?)\n---/);
+    const config = yaml.load(frontmatterMatch![1]) as any;
     
-    expect(config.nodes.A.x).toBe(11); // Rounded
-    expect(config.nodes.A.y).toBe(21); // Rounded
-    expect(config.nodes.A.color).toBe('blue');
-    expect(config.nodes.A.width).toBe(150);
+    expect(config.mermade.nodes.A.x).toBe(11); // Rounded
+    expect(config.mermade.nodes.A.y).toBe(21); // Rounded
+    expect(config.mermade.nodes.A.color).toBe('blue');
+    expect(config.mermade.nodes.A.width).toBe(150);
     
-    // The serializer generates a specific ID format for edges if not provided correctly
-    const edgeKey = Object.keys(config.edges)[0];
-    expect(config.edges[edgeKey].animated).toBe(true);
-    expect(config.edges[edgeKey].stroke).toBe('red');
+    const edgeKey = Object.keys(config.mermade.edges)[0];
+    expect(config.mermade.edges[edgeKey].animated).toBe(true);
+    expect(config.mermade.edges[edgeKey].stroke).toBe('red');
   });
 });

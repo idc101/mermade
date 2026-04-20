@@ -1,6 +1,6 @@
 import type { Node, Edge } from 'reactflow';
+import yaml from 'js-yaml';
 import type { CustomNodeData, SubgraphNodeData, VisualConfig } from '../types';
-import { CONFIG_DELIMITER } from '../constants';
 
 export function syncVisualConfigToText(
   nodes: Node<CustomNodeData | SubgraphNodeData>[],
@@ -9,16 +9,25 @@ export function syncVisualConfigToText(
   baselineNodes: Node[] = [],
   baselineEdges: Edge[] = []
 ): string {
-  const parts = oldText.split(CONFIG_DELIMITER);
-  const semanticPart = parts[0].trim();
+  let semanticPart = oldText.trim();
+  let existingFrontmatter: any = null;
+
+  const frontmatterMatch = semanticPart.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  if (frontmatterMatch) {
+    try {
+      existingFrontmatter = yaml.load(frontmatterMatch[1]);
+      semanticPart = frontmatterMatch[2].trim();
+    } catch (e) {
+      console.error('Failed to parse existing YAML frontmatter:', e);
+    }
+  }
 
   // Find icons already defined in semantic part
-  const iconRegex = /<icon\s+icon=["']([^"']+)["']\s*\/>/g;
+  const iconRegex = /\b(fa|icon):[a-zA-Z0-9_-]+/g;
   const semanticIcons = new Set<string>();
   let match;
   while ((match = iconRegex.exec(semanticPart)) !== null) {
     // This is a bit naive as it doesn't associate with node ID easily here
-    // but we can check if the node's current icon is in the semantic text for that specific node
   }
 
   const config: VisualConfig = {
@@ -58,7 +67,8 @@ export function syncVisualConfigToText(
 
     if ('icon' in node.data && node.data.icon) {
       // Check if icon is already in semantic text for this node
-      const nodeDefRegex = new RegExp(`${node.id}\\[.*?<icon\\s+icon=["']${node.data.icon}["']\\s*\\/>`);
+      const iconString = node.data.icon.startsWith('fa:') ? node.data.icon : `icon:${node.data.icon}`;
+      const nodeDefRegex = new RegExp(`${node.id}\\[.*?${iconString}`);
       if (!nodeDefRegex.test(semanticPart)) {
         nodeConfig.icon = node.data.icon;
       }
@@ -95,16 +105,24 @@ export function syncVisualConfigToText(
     }
   });
 
-  // If config is empty, don't even add the delimiter and config block
+  // If config is empty, don't add mermade config to frontmatter
   if (Object.keys(config.nodes).length === 0 && Object.keys(config.edges).length === 0) {
+    if (existingFrontmatter) {
+      delete existingFrontmatter.mermade;
+      if (Object.keys(existingFrontmatter).length === 0) return semanticPart;
+      return `---\n${yaml.dump(existingFrontmatter)}---\n${semanticPart}`;
+    }
     return semanticPart;
   }
 
-  return `${semanticPart}\n\n${CONFIG_DELIMITER}\n${JSON.stringify(config, null, 2)}`;
+  const newFrontmatter = existingFrontmatter || {};
+  newFrontmatter.mermade = config;
+
+  return `---\n${yaml.dump(newFrontmatter)}---\n${semanticPart}`;
 }
 
 function getNodeDef(n: Node<CustomNodeData | SubgraphNodeData>) {
-  const iconTag = 'icon' in n.data && n.data.icon ? `<icon icon="${n.data.icon}" /> ` : '';
+  const iconTag = 'icon' in n.data && n.data.icon ? (n.data.icon.startsWith('fa:') ? `${n.data.icon} ` : `icon:${n.data.icon} `) : '';
   const label = n.data.label || n.id;
   const fullLabel = `${iconTag}${label}`.trim();
   
@@ -134,9 +152,13 @@ export function buildMermaidText(
   baselineNodes: Node[] = [],
   baselineEdges: Edge[] = []
 ): string {
-  const parts = oldText.split(CONFIG_DELIMITER);
-  const semanticPart = parts[0];
-  const mermaidLines = semanticPart.trim().split('\n');
+  let semanticPart = oldText.trim();
+  const frontmatterMatch = semanticPart.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  if (frontmatterMatch) {
+    semanticPart = frontmatterMatch[2].trim();
+  }
+  
+  const mermaidLines = semanticPart.split('\n');
   
   const header = (mermaidLines[0]?.trim().startsWith('graph') || mermaidLines[0]?.trim().startsWith('flowchart'))
     ? mermaidLines[0].trim()

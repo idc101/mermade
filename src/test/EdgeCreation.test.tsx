@@ -13,8 +13,8 @@ describe('Edge Creation', () => {
 
     // Initial state: LIPO and BUCK
     const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
-    expect(textarea.value).toContain('LIPO[2S LiPo Battery 7.4V]');
-    expect(textarea.value).toContain('BUCK[Buck Converter 7.4V to 5V]');
+    expect(textarea.value).toContain('LIPO[fa:battery-full 2S LiPo Battery 7.4V]');
+    expect(textarea.value).toContain('BUCK[icon:zap Buck Converter 7.4V to 5V]');
 
     // Let's check if 'LIPO -- TEST --> BUCK' is NOT there initially
     expect(textarea.value).not.toContain('LIPO -- TEST --> BUCK');

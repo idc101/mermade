@@ -5,7 +5,6 @@ import SubgraphNode from './components/SubgraphNode';
 import FloatingEdge from './components/FloatingEdge';
 
 export const STORAGE_KEY = 'mermade-diagram-text';
-export const CONFIG_DELIMITER = '%% --- mermade-config --- %%';
 
 export const nodeTypes: NodeTypes = {
   customNode: CustomNode,
@@ -26,22 +25,22 @@ export const defaultEdgeOptions = {
 
 export const initialText = `graph TD
     subgraph Battery_Power ["Power Source"]
-        LIPO[2S LiPo Battery 7.4V]
+        LIPO[fa:battery-full 2S LiPo Battery 7.4V]
     end
 
     subgraph Regulation ["Voltage Management"]
-        BUCK[Buck Converter 7.4V to 5V]
+        BUCK[icon:zap Buck Converter 7.4V to 5V]
     end
 
     subgraph Logic ["Control Unit"]
-        ESP32[ESP32 Development Board]
+        ESP32[icon:cpu ESP32 Development Board]
     end
 
     subgraph Actuators ["Motors and Steering"]
-        DRIVER[Motor Driver - e.g. MX1508]
-        SERVO[9g Servo]
-        MOT1[N20 Motor Left]
-        MOT2[N20 Motor Right]
+        DRIVER[icon:settings Motor Driver - e.g. MX1508]
+        SERVO[icon:move 9g Servo]
+        MOT1[icon:wind N20 Motor Left]
+        MOT2[icon:wind N20 Motor Right]
     end
     LIPO -- VCC --> BUCK
     LIPO -- VCC --> DRIVER

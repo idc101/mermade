@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { parseMermaid } from './parser';
-import { CONFIG_DELIMITER } from '../constants';
 
 describe('parseMermaid', () => {
   it('should parse basic nodes and edges', () => {
@@ -76,35 +75,59 @@ graph TD
     expect(nodeA?.parentNode).toBe('SG1');
   });
 
-  it('should parse visual config after delimiter', () => {
-    const mermaid = `
+  it('should parse visual config in YAML frontmatter', () => {
+    const mermaid = `---
+mermade:
+  nodes:
+    A:
+      x: 300
+      y: 400
+      color: blue
+---
 graph TD
   A --> B
-${CONFIG_DELIMITER}
-{
-  "nodes": {
-    "A": { "x": 100, "y": 200, "color": "red" }
-  }
-}
 `;
     const result = parseMermaid(mermaid);
     
     const nodeA = result.nodes.find(n => n.id === 'A');
-    expect(nodeA?.position).toEqual({ x: 100, y: 200 });
-    expect(nodeA?.data.color).toBe('red');
+    expect(nodeA?.position).toEqual({ x: 300, y: 400 });
+    expect(nodeA?.data.color).toBe('blue');
+    expect(result.mermaidText).toBe('graph TD\n  A --> B');
   });
 
-  it('should strip <icon /> tags from labels', () => {
+  it('should parse visual config in YAML frontmatter under config key', () => {
+    const mermaid = `---
+config:
+  mermade:
+    nodes:
+      A:
+        x: 500
+        y: 600
+---
+graph TD
+  A --> B
+`;
+    const result = parseMermaid(mermaid);
+    
+    const nodeA = result.nodes.find(n => n.id === 'A');
+    expect(nodeA?.position).toEqual({ x: 500, y: 600 });
+  });
+
+  it('should strip icon syntax from labels', () => {
     const mermaid = `
 graph TD
-  A[Node A <icon icon="mdi:user" />]
+  A[Node A fa:user]
+  B[Node B icon:server]
 `;
     const result = parseMermaid(mermaid);
     
     const nodeA = result.nodes.find(n => n.id === 'A');
     expect(nodeA?.data.label).toBe('Node A');
-    // The parser extracts icons from the full mermaidText if not in config
-    expect(nodeA?.data.icon).toBe('mdi:user');
+    expect(nodeA?.data.icon).toBe('fa:user');
+
+    const nodeB = result.nodes.find(n => n.id === 'B');
+    expect(nodeB?.data.label).toBe('Node B');
+    expect(nodeB?.data.icon).toBe('server');
   });
 
   it('should handle invalid mermaid text gracefully', () => {

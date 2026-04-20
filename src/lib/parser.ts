@@ -1,4 +1,5 @@
 import { parse } from 'mermaid-ast';
+import yaml from 'js-yaml';
 import type { Node, Edge } from 'reactflow';
 import type { 
   MermaidAST, 
@@ -7,29 +8,36 @@ import type {
   VisualConfig,
   DiagramData 
 } from '../types';
-import { CONFIG_DELIMITER } from '../constants';
 
 export { type VisualConfig, type DiagramData };
 
 export function parseMermaid(text: string): DiagramData {
-  const parts = text.split(CONFIG_DELIMITER);
-  const mermaidText = parts[0].trim();
   let config: VisualConfig = { nodes: {}, edges: {} };
+  let mermaidText = text.trim();
+  let success = false;
 
-  if (parts.length > 1) {
+  // 1. Try YAML frontmatter
+  const frontmatterMatch = mermaidText.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  if (frontmatterMatch) {
     try {
-      config = JSON.parse(parts[1].trim());
+      const frontmatter = yaml.load(frontmatterMatch[1]) as any;
+      if (frontmatter && frontmatter.mermade) {
+        config = frontmatter.mermade;
+      } else if (frontmatter && frontmatter.config && frontmatter.config.mermade) {
+        config = frontmatter.config.mermade;
+      }
+      mermaidText = frontmatterMatch[2].trim();
     } catch (e) {
-      console.error('Failed to parse config:', e);
+      console.error('Failed to parse YAML frontmatter:', e);
     }
   }
 
   const nodes: Node<CustomNodeData | SubgraphNodeData>[] = [];
   const edges: Edge[] = [];
-  let success = false;
 
-  // Pre-process mermaidText to handle <icon /> tags
-  const iconRegex = /<icon\s+icon=["']([^"']+)["']\s*\/>/g;
+  // Pre-process mermaidText to handle icons (fa:xyz or icon:ssss)
+  // We strip them so mermaid-ast doesn't choke on them if they are in labels
+  const iconRegex = /\b(fa|icon):[a-zA-Z0-9_-]+/g;
   const strippedMermaidText = mermaidText.replace(iconRegex, '');
 
   try {
@@ -68,22 +76,26 @@ export function parseMermaid(text: string): DiagramData {
     if (astNodes) {
         astNodes.forEach((astNode, id) => {
           const visual = config.nodes[id] || {};
-          const label = astNode.text?.text || id;
+          let label = astNode.text?.text || id;
           let icon = visual.icon;
 
           if (!icon) {
-            const nodeLineRegex = new RegExp(`${id}\\[.*?<icon\\s+icon=["']([^"']+)["']\\s*\\/>`);
+            // Look for icon in the original mermaid text for this node
+            const nodeLineRegex = new RegExp(`${id}\\[.*?\\b(fa|icon):([a-zA-Z0-9_-]+)`);
             const match = mermaidText.match(nodeLineRegex);
             if (match) {
-              icon = match[1];
+              icon = match[1] === 'fa' ? `fa:${match[2]}` : match[2];
             }
           }
+
+          // Clean up the label if the icon syntax was part of it
+          label = label.replace(/\b(fa|icon):[a-zA-Z0-9_-]+/g, '').trim();
 
           const node: Node<CustomNodeData> = {
             id,
             type: 'customNode',
             data: { 
-                label: label.trim(), 
+                label: label, 
                 icon, 
                 color: visual.color,
                 shape: astNode.shape
@@ -131,5 +143,10 @@ export function parseMermaid(text: string): DiagramData {
 }
 
 export function clearConfig(text: string): string {
-  return text.split(CONFIG_DELIMITER)[0].trim();
+  let mermaidText = text.trim();
+  const frontmatterMatch = mermaidText.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  if (frontmatterMatch) {
+    mermaidText = frontmatterMatch[2].trim();
+  }
+  return mermaidText;
 }
