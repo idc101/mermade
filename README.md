@@ -1,3 +1,9 @@
+# Mermade: Engineering Diagramming Tool
+
+Mermade is a hybrid diagramming tool designed to bridge the gap between **Diagram-as-Code** (like Mermaid) and **High-Fidelity WYSIWYG Editors**.
+
+---
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

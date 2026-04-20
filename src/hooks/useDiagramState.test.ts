@@ -67,7 +67,7 @@ describe('useDiagramState', () => {
     });
 
     // It should now contain the config delimiter and JSON
-    expect(result.current.text).toContain('arrows-config');
+    expect(result.current.text).toContain('mermade-config');
     expect(result.current.text).toContain('"x": 100');
   });
 
@@ -122,7 +122,7 @@ describe('useDiagramState', () => {
      });
 
      // Text should NOT have config (because it matches the auto-layout baseline)
-     expect(result.current.text).not.toContain('arrows-config');
+     expect(result.current.text).not.toContain('mermade-config');
   });
 
   it('should remove config when node is moved back to its baseline position', async () => {
@@ -143,7 +143,7 @@ describe('useDiagramState', () => {
         { id: 'A', type: 'position', position: { x: baselineX + 100, y: baselineY + 100 }, dragging: false },
       ]);
     });
-    expect(result.current.text).toContain('arrows-config');
+    expect(result.current.text).toContain('mermade-config');
 
     // Move it back
     act(() => {
@@ -152,7 +152,7 @@ describe('useDiagramState', () => {
       ]);
     });
     
-    // It should NO LONGER contain arrows-config
-    expect(result.current.text).not.toContain('arrows-config');
+    // It should NO LONGER contain mermade-config
+    expect(result.current.text).not.toContain('mermade-config');
   });
 });

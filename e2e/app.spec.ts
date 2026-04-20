@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Arrows App', () => {
+test.describe('Mermade App', () => {
   test('should load the app and display the editor', async ({ page }) => {
     await page.goto('/');
     
     // Check title
-    await expect(page).toHaveTitle(/arrows/);
+    await expect(page).toHaveTitle(/Mermade/);
     
     // Check for editor
     const editor = page.locator('textarea');

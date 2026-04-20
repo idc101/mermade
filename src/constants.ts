@@ -4,8 +4,8 @@ import CustomNode from './components/CustomNode';
 import SubgraphNode from './components/SubgraphNode';
 import FloatingEdge from './components/FloatingEdge';
 
-export const STORAGE_KEY = 'arrows-diagram-text';
-export const CONFIG_DELIMITER = '%% --- arrows-config --- %%';
+export const STORAGE_KEY = 'mermade-diagram-text';
+export const CONFIG_DELIMITER = '%% --- mermade-config --- %%';
 
 export const nodeTypes: NodeTypes = {
   customNode: CustomNode,
