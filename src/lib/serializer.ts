@@ -5,10 +5,21 @@ import { CONFIG_DELIMITER } from '../constants';
 export function syncVisualConfigToText(
   nodes: Node<CustomNodeData | SubgraphNodeData>[],
   edges: Edge[],
-  oldText: string
+  oldText: string,
+  baselineNodes: Node[] = [],
+  baselineEdges: Edge[] = []
 ): string {
   const parts = oldText.split(CONFIG_DELIMITER);
   const semanticPart = parts[0].trim();
+
+  // Find icons already defined in semantic part
+  const iconRegex = /<icon\s+icon=["']([^"']+)["']\s*\/>/g;
+  const semanticIcons = new Set<string>();
+  let match;
+  while ((match = iconRegex.exec(semanticPart)) !== null) {
+    // This is a bit naive as it doesn't associate with node ID easily here
+    // but we can check if the node's current icon is in the semantic text for that specific node
+  }
 
   const config: VisualConfig = {
     nodes: {},
@@ -16,24 +27,78 @@ export function syncVisualConfigToText(
   };
 
   nodes.forEach((node) => {
-    config.nodes[node.id] = {
-      x: Math.round(node.position.x),
-      y: Math.round(node.position.y),
-      width: node.style?.width ? Number(node.style.width) : undefined,
-      height: node.style?.height ? Number(node.style.height) : undefined,
-      color: node.data.color,
-      icon: 'icon' in node.data ? node.data.icon : undefined,
-    };
+    const baseline = baselineNodes.find((bn) => bn.id === node.id);
+    const nodeConfig: any = {};
+    
+    const x = Math.round(node.position.x);
+    const y = Math.round(node.position.y);
+    const bx = baseline ? Math.round(baseline.position.x) : undefined;
+    const by = baseline ? Math.round(baseline.position.y) : undefined;
+
+    // Only store position if it differs from baseline
+    if (bx === undefined || by === undefined || Math.abs(x - bx) > 1 || Math.abs(y - by) > 1) {
+      nodeConfig.x = x;
+      nodeConfig.y = y;
+    }
+
+    const width = node.style?.width ? Number(node.style.width) : undefined;
+    const height = node.style?.height ? Number(node.style.height) : undefined;
+    const bWidth = baseline?.style?.width ? Number(baseline.style.width) : undefined;
+    const bHeight = baseline?.style?.height ? Number(baseline.style.height) : undefined;
+
+    if (width !== undefined && width !== bWidth) nodeConfig.width = width;
+    if (height !== undefined && height !== bHeight) nodeConfig.height = height;
+    
+    if (node.data.color) {
+      const bColor = baseline?.data.color;
+      if (node.data.color !== bColor) {
+        nodeConfig.color = node.data.color;
+      }
+    }
+
+    if ('icon' in node.data && node.data.icon) {
+      // Check if icon is already in semantic text for this node
+      const nodeDefRegex = new RegExp(`${node.id}\\[.*?<icon\\s+icon=["']${node.data.icon}["']\\s*\\/>`);
+      if (!nodeDefRegex.test(semanticPart)) {
+        nodeConfig.icon = node.data.icon;
+      }
+    }
+
+    if (Object.keys(nodeConfig).length > 0) {
+      config.nodes[node.id] = nodeConfig;
+    }
   });
 
   edges.forEach((edge, index) => {
-    // Try to preserve the existing ID structure or create a consistent one
     const edgeId = edge.id || `${edge.source}-${edge.target}-${index}`;
-    config.edges[edgeId] = {
-      stroke: edge.style?.stroke as string,
-      animated: edge.animated,
-    };
+    const baseline = baselineEdges.find((be) => be.id === edgeId) || 
+                     baselineEdges.find((be) => be.source === edge.source && be.target === edge.target);
+    
+    const edgeConfig: any = {};
+    
+    if (edge.style?.stroke) {
+      const bStroke = baseline?.style?.stroke;
+      if (edge.style.stroke !== bStroke) {
+        edgeConfig.stroke = edge.style.stroke as string;
+      }
+    }
+    
+    if (edge.animated !== undefined) {
+      const bAnimated = baseline?.animated;
+      if (edge.animated !== bAnimated && edge.animated !== false) {
+        edgeConfig.animated = edge.animated;
+      }
+    }
+
+    if (Object.keys(edgeConfig).length > 0) {
+      config.edges[edgeId] = edgeConfig;
+    }
   });
+
+  // If config is empty, don't even add the delimiter and config block
+  if (Object.keys(config.nodes).length === 0 && Object.keys(config.edges).length === 0) {
+    return semanticPart;
+  }
 
   return `${semanticPart}\n\n${CONFIG_DELIMITER}\n${JSON.stringify(config, null, 2)}`;
 }
@@ -65,7 +130,9 @@ function getNodeDef(n: Node<CustomNodeData | SubgraphNodeData>) {
 export function buildMermaidText(
   nodes: Node<CustomNodeData | SubgraphNodeData>[],
   edges: Edge[],
-  oldText: string
+  oldText: string,
+  baselineNodes: Node[] = [],
+  baselineEdges: Edge[] = []
 ): string {
   const parts = oldText.split(CONFIG_DELIMITER);
   const semanticPart = parts[0];
@@ -93,5 +160,5 @@ export function buildMermaidText(
   if (edgeDefs) sections.push(edgeDefs);
 
   const semanticText = sections.join('\n\n');
-  return syncVisualConfigToText(nodes, edges, semanticText);
+  return syncVisualConfigToText(nodes, edges, semanticText, baselineNodes, baselineEdges);
 }

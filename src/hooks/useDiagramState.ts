@@ -26,6 +26,8 @@ export function useDiagramState() {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const isInternalUpdate = useRef(false);
+  const lastSemanticText = useRef<string>('');
+  const layoutBaseline = useRef<{ nodes: Node[]; edges: Edge[] }>({ nodes: [], edges: [] });
 
   // Persist to localStorage
   useEffect(() => {
@@ -39,52 +41,95 @@ export function useDiagramState() {
       return;
     }
 
-    const updateLayout = async () => {
-      const { nodes: parsedNodes, edges: parsedEdges, config, mermaidText, success } = parseMermaid(text);
+    const { nodes: parsedNodes, edges: parsedEdges, config, mermaidText, success } = parseMermaid(text);
+    
+    if (!success && text.trim().length > 0) {
+      return;
+    }
+
+    const floatingEdges = parsedEdges.map(edge => ({
+      ...edge,
+      type: 'floating',
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        color: '#000',
+      },
+    }));
+
+    const isHorizontal = mermaidText.includes('graph LR') || mermaidText.includes('flowchart LR');
+    const elkDirection = isHorizontal ? 'RIGHT' : 'DOWN';
+
+    if (mermaidText !== lastSemanticText.current) {
+      lastSemanticText.current = mermaidText;
       
-      if (!success && text.trim().length > 0) {
-        // Parsing failed (e.g. while typing), don't update canvas
-        return;
-      }
-
-      // Ensure all parsed edges use the floating type
-      const floatingEdges = parsedEdges.map(edge => ({
-        ...edge,
-        type: 'floating',
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-          color: '#000',
-        },
-      }));
-
-      // Determine direction from mermaid text
-      const isHorizontal = mermaidText.includes('graph LR') || mermaidText.includes('flowchart LR');
-      const elkDirection = isHorizontal ? 'RIGHT' : 'DOWN';
-
-      // If no positions are stored in config, auto-layout
-      const hasPositions = Object.keys(config.nodes).length > 0;
-      if (!hasPositions && parsedNodes.length > 0) {
+      const updateLayout = async () => {
         const { nodes: layoutedNodes, edges: layoutedEdges } = await getLayoutedElements(parsedNodes, floatingEdges, elkDirection);
-        setNodes(layoutedNodes);
-        setEdges(layoutedEdges);
-      } else {
-        setNodes(parsedNodes);
-        setEdges(floatingEdges);
-      }
-    };
+        layoutBaseline.current = { nodes: layoutedNodes, edges: layoutedEdges };
 
-    updateLayout();
+        // Apply config on top of layouted baseline
+        const mergedNodes = layoutedNodes.map(ln => {
+          const visual = config.nodes[ln.id];
+          if (!visual) return ln;
+          return {
+            ...ln,
+            position: { x: visual.x ?? ln.position.x, y: visual.y ?? ln.position.y },
+            style: { 
+              ...ln.style, 
+              width: visual.width ?? ln.style?.width, 
+              height: visual.height ?? ln.style?.height 
+            },
+            data: { 
+              ...ln.data, 
+              color: visual.color ?? ln.data.color, 
+              icon: visual.icon ?? ln.data.icon 
+            }
+          };
+        });
+
+        const mergedEdges = layoutedEdges.map(le => {
+          const visual = config.edges[le.id];
+          if (!visual) return le;
+          return {
+            ...le,
+            animated: visual.animated ?? le.animated,
+            style: { ...le.style, stroke: visual.stroke ?? le.style?.stroke }
+          };
+        });
+
+        setNodes(mergedNodes);
+        setEdges(mergedEdges);
+      };
+
+      updateLayout();
+    } else {
+      // Semantic text didn't change, but config might have (e.g. manual edit in editor)
+      // Update nodes from parsed state (which includes config) but keep existing baseline
+      setNodes(parsedNodes);
+      setEdges(floatingEdges);
+    }
   }, [text]);
 
   const syncToText = useCallback((newNodes: Node[], newEdges: Edge[]) => {
     isInternalUpdate.current = true;
-    const newFullText = buildMermaidText(newNodes, newEdges, text);
+    const newFullText = buildMermaidText(
+      newNodes, 
+      newEdges, 
+      text, 
+      layoutBaseline.current.nodes, 
+      layoutBaseline.current.edges
+    );
     setText(newFullText);
   }, [text]);
 
   const syncVisualToText = useCallback((newNodes: Node[], newEdges: Edge[]) => {
     isInternalUpdate.current = true;
-    const newFullText = syncVisualConfigToText(newNodes, newEdges, text);
+    const newFullText = syncVisualConfigToText(
+      newNodes, 
+      newEdges, 
+      text, 
+      layoutBaseline.current.nodes, 
+      layoutBaseline.current.edges
+    );
     setText(newFullText);
   }, [text]);
 
@@ -213,12 +258,15 @@ export function useDiagramState() {
 
     const { nodes: layoutedNodes, edges: layoutedEdges } = await getLayoutedElements(parsedNodes, floatingEdges, elkDirection);
     
+    layoutBaseline.current = { nodes: layoutedNodes, edges: layoutedEdges };
     setNodes(layoutedNodes);
     setEdges(layoutedEdges);
     
     isInternalUpdate.current = true;
-    const newText = buildMermaidText(layoutedNodes, layoutedEdges, cleanedText);
+    // Pass the layouted nodes as baseline so buildMermaidText sees no difference and skips config
+    const newText = buildMermaidText(layoutedNodes, layoutedEdges, cleanedText, layoutedNodes, layoutedEdges);
     setText(newText);
+    lastSemanticText.current = mermaidText;
   }, [text]);
 
   const addNewNode = useCallback(() => {

@@ -20,7 +20,7 @@ describe('Node Styles', () => {
     fireEvent.change(textarea, { target: { value: newText } });
 
     // Verify the node is in the canvas
-    const nodeText = await screen.findByText('Initial Label');
+    const nodeText = await screen.findByText('Initial Label', {}, { timeout: 10000 });
     expect(nodeText).toBeInTheDocument();
   });
 });

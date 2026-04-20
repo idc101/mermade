@@ -121,7 +121,38 @@ describe('useDiagramState', () => {
        await result.current.handleAutoLayout();
      });
 
-     // Text should now have config (because getLayoutedElements was called and syncToText followed)
-     expect(result.current.text).toContain('arrows-config');
+     // Text should NOT have config (because it matches the auto-layout baseline)
+     expect(result.current.text).not.toContain('arrows-config');
+  });
+
+  it('should remove config when node is moved back to its baseline position', async () => {
+    const { result } = renderHook(() => useDiagramState());
+    
+    act(() => {
+      result.current.setText('graph TD\n  A');
+    });
+    
+    // Wait for baseline to be established
+    await waitFor(() => expect(result.current.nodes.length).toBe(1));
+    const baselineX = result.current.nodes[0].position.x;
+    const baselineY = result.current.nodes[0].position.y;
+
+    // Move it
+    act(() => {
+      result.current.onNodesChange([
+        { id: 'A', type: 'position', position: { x: baselineX + 100, y: baselineY + 100 }, dragging: false },
+      ]);
+    });
+    expect(result.current.text).toContain('arrows-config');
+
+    // Move it back
+    act(() => {
+      result.current.onNodesChange([
+        { id: 'A', type: 'position', position: { x: baselineX, y: baselineY }, dragging: false },
+      ]);
+    });
+    
+    // It should NO LONGER contain arrows-config
+    expect(result.current.text).not.toContain('arrows-config');
   });
 });
