@@ -5,8 +5,16 @@ import type { NodeProps } from 'reactflow';
 const SubgraphNode = ({ data }: NodeProps) => {
   return (
     <>
-      <div className="subgraph-label absolute top-4 left-0 right-0 pointer-events-none text-center font-semibold text-sm text-black uppercase tracking-wider">
-        {data.label}
+      <div 
+        className="subgraph-label absolute top-4 left-0 right-0 pointer-events-none text-center font-semibold text-sm text-black uppercase tracking-wider"
+        style={{ whiteSpace: 'pre-wrap' }}
+      >
+        {data.label?.split(/<br\s*\/?>|\\n|\n/g).map((line: string, i: number, arr: string[]) => (
+          <span key={i}>
+            {line}
+            {i < arr.length - 1 && <br />}
+          </span>
+        ))}
       </div>
       
       {/* 12 Handles for Floating Edges (3 on each side) */}

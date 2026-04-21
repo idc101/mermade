@@ -54,10 +54,15 @@ const CustomNode = ({ data, selected, style }: NodeProps<CustomNodeData>) => {
         ) : null
       )}
       <div 
-        className="text-center font-medium text-sm text-black leading-tight truncate"
-        style={{ textAlign: 'center', flexGrow: 0 }}
+        className="text-center font-medium text-sm text-black leading-tight"
+        style={{ textAlign: 'center', flexGrow: 0, whiteSpace: 'pre-wrap' }}
       >
-        {data.label}
+        {data.label?.split(/<br\s*\/?>|\\n|\n/g).map((line, i, arr) => (
+          <span key={i}>
+            {line}
+            {i < arr.length - 1 && <br />}
+          </span>
+        ))}
       </div>
     </div>
   );
