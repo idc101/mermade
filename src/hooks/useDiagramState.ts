@@ -19,10 +19,17 @@ import type { CustomNodeData, SubgraphNodeData } from '../types';
 import { initialText, STORAGE_KEY } from '../constants';
 
 export function useDiagramState() {
-  const [text, setText] = useState(() => {
+  const [text, setTextState] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved || initialText;
   });
+  const textRef = useRef(text);
+  
+  const setText = useCallback((newText: string) => {
+    textRef.current = newText;
+    setTextState(newText);
+  }, []);
+
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const isInternalUpdate = useRef(false);
@@ -43,6 +50,7 @@ export function useDiagramState() {
 
     const { nodes: parsedNodes, edges: parsedEdges, config, mermaidText, success } = parseMermaid(text);
     
+    // If parsing fails but there is text, don't clear the diagram (prevents flicker while typing)
     if (!success && text.trim().length > 0) {
       return;
     }
@@ -114,24 +122,33 @@ export function useDiagramState() {
     const newFullText = buildMermaidText(
       newNodes, 
       newEdges, 
-      text, 
+      textRef.current, 
       layoutBaseline.current.nodes, 
       layoutBaseline.current.edges
     );
     setText(newFullText);
-  }, [text]);
+  }, [setText]);
 
   const syncVisualToText = useCallback((newNodes: Node[], newEdges: Edge[]) => {
     isInternalUpdate.current = true;
     const newFullText = syncVisualConfigToText(
       newNodes, 
       newEdges, 
-      text, 
+      textRef.current, 
       layoutBaseline.current.nodes, 
       layoutBaseline.current.edges
     );
     setText(newFullText);
-  }, [text]);
+  }, [setText]);
+
+  // Debounced versions for frequent updates (like dragging)
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debouncedSyncVisualToText = useCallback((newNodes: Node[], newEdges: Edge[]) => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      syncVisualToText(newNodes, newEdges);
+    }, 200);
+  }, [syncVisualToText]);
 
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => {
@@ -140,12 +157,12 @@ export function useDiagramState() {
         const hasPositionChange = changes.some(c => c.type === 'position' || c.type === 'dimensions');
         
         if (hasPositionChange) {
-           syncVisualToText(nextNodes, edges);
+           debouncedSyncVisualToText(nextNodes, edges);
         }
         return nextNodes;
       });
     },
-    [edges, syncVisualToText]
+    [edges, debouncedSyncVisualToText]
   );
 
   const onEdgesChange: OnEdgesChange = useCallback(
@@ -234,8 +251,7 @@ export function useDiagramState() {
         return node;
       });
       
-      // Delay sync to text until after state update
-      setTimeout(() => syncVisualToText(nextNodes, edges), 0);
+      syncVisualToText(nextNodes, edges);
       return nextNodes;
     });
   }, [edges, syncVisualToText]);
@@ -249,14 +265,13 @@ export function useDiagramState() {
         return edge;
       });
 
-      // Delay sync to text until after state update
-      setTimeout(() => syncVisualToText(nodes, nextEdges), 0);
+      syncVisualToText(nodes, nextEdges);
       return nextEdges;
     });
   }, [nodes, syncVisualToText]);
 
   const handleAutoLayout = useCallback(async () => {
-    const cleanedText = clearConfig(text);
+    const cleanedText = clearConfig(textRef.current);
     const { nodes: parsedNodes, edges: parsedEdges, mermaidText, success } = parseMermaid(cleanedText);
     
     if (!success) return;
@@ -284,7 +299,7 @@ export function useDiagramState() {
     const newText = buildMermaidText(layoutedNodes, layoutedEdges, cleanedText, layoutedNodes, layoutedEdges);
     setText(newText);
     lastSemanticText.current = mermaidText;
-  }, [text]);
+  }, [setText]);
 
   const addNewNode = useCallback(() => {
     const id = `node_${Math.random().toString(36).substring(2, 11)}`;

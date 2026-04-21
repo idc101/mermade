@@ -66,8 +66,10 @@ describe('useDiagramState', () => {
       ]);
     });
 
-    // It should now contain the YAML frontmatter
-    expect(result.current.text).toMatch(/^---\n/);
+    // Wait for debounced sync
+    await waitFor(() => {
+      expect(result.current.text).toMatch(/^---\n/);
+    });
     expect(result.current.text).toContain('mermade:');
     expect(result.current.text).toContain('x: 100');
   });
@@ -144,7 +146,7 @@ describe('useDiagramState', () => {
         { id: 'A', type: 'position', position: { x: baselineX + 100, y: baselineY + 100 }, dragging: false },
       ]);
     });
-    expect(result.current.text).toContain('mermade:');
+    await waitFor(() => expect(result.current.text).toContain('mermade:'));
 
     // Move it back
     act(() => {
@@ -154,6 +156,6 @@ describe('useDiagramState', () => {
     });
     
     // It should NO LONGER contain mermade config
-    expect(result.current.text).not.toContain('mermade:');
+    await waitFor(() => expect(result.current.text).not.toContain('mermade:'));
   });
 });
