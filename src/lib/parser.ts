@@ -130,6 +130,10 @@ export function parseMermaid(text: string): DiagramData {
             label: link.text?.text || '',
             animated: visual.animated ?? false,
             style: visual.stroke ? { stroke: visual.stroke } : undefined,
+            data: {
+              labelOffset: visual.labelOffset,
+              controlPoint: visual.controlPoint
+            },
             zIndex: 1000,
           });
         });

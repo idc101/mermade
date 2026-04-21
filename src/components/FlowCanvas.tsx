@@ -25,6 +25,7 @@ interface FlowCanvasProps {
   onSelectionChange: (params: { nodes: Node[]; edges: Edge[] }) => void;
   selectedElement: Node | Edge | null;
   onUpdateNode: (id: string, data: Partial<CustomNodeData | SubgraphNodeData>) => void;
+  onUpdateEdge: (id: string, data: any) => void;
 }
 
 export function FlowCanvas({
@@ -38,9 +39,16 @@ export function FlowCanvas({
   onSelectionChange,
   selectedElement,
   onUpdateNode,
+  onUpdateEdge,
 }: FlowCanvasProps) {
-  const nodeTypes = useMemo(() => nodeTypesConst, []);
-  const edgeTypes = useMemo(() => edgeTypesConst, []);
+  const nodeTypes = useMemo(() => ({
+    customNode: (props: any) => <nodeTypesConst.customNode {...props} onUpdateNode={onUpdateNode} />,
+    subgraphNode: (props: any) => <nodeTypesConst.subgraphNode {...props} onUpdateNode={onUpdateNode} />,
+  }), [onUpdateNode]);
+
+  const edgeTypes = useMemo(() => ({
+    floating: (props: any) => <edgeTypesConst.floating {...props} onUpdateEdge={onUpdateEdge} />,
+  }), [onUpdateEdge]);
 
   const selectedNode = selectedElement && 'data' in selectedElement 
     ? nodes.find(n => n.id === selectedElement.id) || null 

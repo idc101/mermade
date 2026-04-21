@@ -40,7 +40,7 @@ export interface SubgraphNodeData {
 
 export interface VisualConfig {
   nodes: Record<string, { x: number; y: number; width?: number; height?: number; color?: string; icon?: string }>;
-  edges: Record<string, { stroke?: string; animated?: boolean }>;
+  edges: Record<string, { stroke?: string; animated?: boolean; labelOffset?: { x: number; y: number }; controlPoint?: { x: number; y: number } }>;
 }
 
 import type { Node, Edge } from 'reactflow';

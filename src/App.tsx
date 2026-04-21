@@ -22,6 +22,7 @@ function App() {
     addNewNode,
     addNewSubgraph,
     updateSelectedNode,
+    updateSelectedEdge,
   } = useDiagramState();
 
   const { exportPng, exportSvg } = useExport();
@@ -55,6 +56,7 @@ function App() {
         onSelectionChange={onSelectionChange}
         selectedElement={selectedElement}
         onUpdateNode={updateSelectedNode}
+        onUpdateEdge={updateSelectedEdge}
       />
     </div>
   );

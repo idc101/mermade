@@ -100,6 +100,14 @@ export function syncVisualConfigToText(
       }
     }
 
+    if (edge.data?.labelOffset) {
+      edgeConfig.labelOffset = edge.data.labelOffset;
+    }
+
+    if (edge.data?.controlPoint) {
+      edgeConfig.controlPoint = edge.data.controlPoint;
+    }
+
     if (Object.keys(edgeConfig).length > 0) {
       config.edges[edgeId] = edgeConfig;
     }

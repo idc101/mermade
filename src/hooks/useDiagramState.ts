@@ -233,10 +233,27 @@ export function useDiagramState() {
         }
         return node;
       });
-      syncVisualToText(nextNodes, edges);
+      
+      // Delay sync to text until after state update
+      setTimeout(() => syncVisualToText(nextNodes, edges), 0);
       return nextNodes;
     });
   }, [edges, syncVisualToText]);
+
+  const updateSelectedEdge = useCallback((id: string, data: any) => {
+    setEdges((eds) => {
+      const nextEdges = eds.map((edge) => {
+        if (edge.id === id) {
+          return { ...edge, data: { ...edge.data, ...data } };
+        }
+        return edge;
+      });
+
+      // Delay sync to text until after state update
+      setTimeout(() => syncVisualToText(nodes, nextEdges), 0);
+      return nextEdges;
+    });
+  }, [nodes, syncVisualToText]);
 
   const handleAutoLayout = useCallback(async () => {
     const cleanedText = clearConfig(text);
@@ -314,5 +331,6 @@ export function useDiagramState() {
     addNewNode,
     addNewSubgraph,
     updateSelectedNode,
+    updateSelectedEdge,
   };
 }
