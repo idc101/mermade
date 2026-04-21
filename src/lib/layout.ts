@@ -17,10 +17,17 @@ const elkOptions = {
 
 const calculateNodeSize = (label: string, hasIcon: boolean) => {
   const charWidth = 9;
-  const padding = 40;
+  const lineHeight = 18;
+  const paddingHorizontal = 40;
+  const paddingVertical = 24;
   const iconSpace = hasIcon ? 24 : 0;
-  const width = Math.max(120, (label.length * charWidth) + padding + iconSpace);
-  const height = 50;
+
+  const lines = label.split(/<br\s*\/?>|\\n|\n/g);
+  const maxLineLength = Math.max(...lines.map(line => line.length));
+  
+  const width = Math.max(120, (maxLineLength * charWidth) + paddingHorizontal + iconSpace);
+  const height = Math.max(50, (lines.length * lineHeight) + paddingVertical);
+  
   return {
     width: Math.round(width / 5) * 5,
     height: Math.round(height / 5) * 5
