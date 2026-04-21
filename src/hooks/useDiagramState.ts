@@ -200,26 +200,30 @@ export function useDiagramState() {
     (deletedNodes: Node[]) => {
       setNodes((nds) => {
         const deletedIds = new Set(deletedNodes.map(n => n.id));
-        const childIdsToDelete = new Set<string>();
+        const allIdsToDelete = new Set<string>(deletedIds);
+        
+        const findDescendants = (parentId: string) => {
+          nds.forEach(n => {
+            if (n.parentNode === parentId && !allIdsToDelete.has(n.id)) {
+              allIdsToDelete.add(n.id);
+              if (n.type === 'subgraphNode') {
+                findDescendants(n.id);
+              }
+            }
+          });
+        };
+
         deletedNodes.forEach(dn => {
           if (dn.type === 'subgraphNode') {
-            nds.forEach(n => {
-              if (n.parentNode === dn.id) {
-                childIdsToDelete.add(n.id);
-              }
-            });
+            findDescendants(dn.id);
           }
         });
 
-        const nextNodes = nds.filter((node) => 
-          !deletedIds.has(node.id) && 
-          !childIdsToDelete.has(node.id)
-        );
+        const nextNodes = nds.filter((node) => !allIdsToDelete.has(node.id));
         
         setEdges(eds => {
            const nextEdges = eds.filter(edge => 
-             !deletedIds.has(edge.source) && !deletedIds.has(edge.target) &&
-             !childIdsToDelete.has(edge.source) && !childIdsToDelete.has(edge.target)
+             !allIdsToDelete.has(edge.source) && !allIdsToDelete.has(edge.target)
            );
            syncToText(nextNodes, nextEdges);
            return nextEdges;

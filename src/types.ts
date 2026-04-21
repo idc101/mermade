@@ -12,6 +12,7 @@ export interface MermaidASTSubgraph {
   id: string;
   title?: MermaidASTText;
   nodes?: string[];
+  subgraphs?: MermaidASTSubgraph[];
 }
 
 export interface MermaidASTLink {

@@ -103,7 +103,7 @@ export const getLayoutedElements = async (nodes: Node[], edges: Edge[], directio
     const targetPath = getPath(targetId);
 
     let lcaId = 'root';
-    for (let i = 0; i < Math.min(sourcePath.length, sourcePath.length); i++) {
+    for (let i = 0; i < Math.min(sourcePath.length, targetPath.length); i++) {
       if (sourcePath[i] === targetPath[i]) {
         // If the common node is a subgraph, it's a potential LCA
         const node = nodes.find(n => n.id === sourcePath[i]);

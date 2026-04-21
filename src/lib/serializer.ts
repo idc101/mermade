@@ -172,16 +172,25 @@ export function buildMermaidText(
     ? mermaidLines[0].trim()
     : 'flowchart TD';
 
-  const subgraphs = nodes.filter(n => n.type === 'subgraphNode');
   const rootNodes = nodes.filter(n => !n.parentNode && n.type !== 'subgraphNode');
+  const topLevelSubgraphs = nodes.filter(n => !n.parentNode && n.type === 'subgraphNode');
 
-  const subgraphDefs = subgraphs.map(sg => {
+  const getSubgraphDef = (sg: Node<SubgraphNodeData>, indent: string = '  '): string => {
     const children = nodes.filter(n => n.parentNode === sg.id);
-    const childDefs = children.map(n => `    ${getNodeDef(n).trim()}`).join('\n');
-    return `  subgraph ${sg.id} ["${sg.data.label}"]\n${childDefs}\n  end`;
-  }).join('\n');
-  
+    const childDefs = children.map(n => {
+      if (n.type === 'subgraphNode') {
+        return getSubgraphDef(n as Node<SubgraphNodeData>, indent + '  ');
+      } else {
+        return `${indent}  ${getNodeDef(n).trim()}`;
+      }
+    }).join('\n');
+    
+    return `${indent}subgraph ${sg.id} ["${sg.data.label}"]\n${childDefs}\n${indent}end`;
+  };
+
+  const subgraphDefs = topLevelSubgraphs.map(sg => getSubgraphDef(sg)).join('\n\n');
   const rootNodeDefs = rootNodes.map(n => `  ${getNodeDef(n)}`).join('\n');
+
   const edgeDefs = edges.map(e => `  ${e.source} -->${e.label ? `|${e.label}|` : ''} ${e.target}`).join('\n');
   
   const sections = [header];

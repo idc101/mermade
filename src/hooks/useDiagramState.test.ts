@@ -111,6 +111,31 @@ describe('useDiagramState', () => {
     expect(result.current.text).not.toContain('A');
   });
 
+  it('should recursively delete nested subgraphs and nodes', async () => {
+    const { result } = renderHook(() => useDiagramState());
+    
+    act(() => {
+      result.current.setText('flowchart TD\n  subgraph SG1\n    subgraph SG2\n      A\n    end\n    B\n  end\n  C');
+    });
+    
+    await waitFor(() => expect(result.current.nodes.length).toBe(5)); // SG1, SG2, A, B, C
+
+    const sg1 = result.current.nodes.find(n => n.id === 'SG1')!;
+
+    act(() => {
+      result.current.onNodesDelete([sg1]);
+    });
+
+    // Should only have C left
+    expect(result.current.nodes).toHaveLength(1);
+    expect(result.current.nodes[0].id).toBe('C');
+    expect(result.current.text).not.toContain('SG1');
+    expect(result.current.text).not.toContain('SG2');
+    expect(result.current.text).not.toContain('A');
+    expect(result.current.text).not.toContain('B');
+    expect(result.current.text).toContain('C');
+  });
+
   it('should handle auto-layout correctly', async () => {
      const { result } = renderHook(() => useDiagramState());
      

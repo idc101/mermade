@@ -50,6 +50,20 @@ export function parseMermaid(text: string): DiagramData {
       success = true;
     }
 
+    const parentMap = new Map<string, string>();
+
+    // 1. Build the parent map first
+    if (astSubgraphs) {
+      astSubgraphs.forEach((sg) => {
+        if (sg.nodes) {
+          sg.nodes.forEach(childId => {
+            parentMap.set(childId, sg.id);
+          });
+        }
+      });
+    }
+
+    // 2. Create subgraph nodes
     if (astSubgraphs) {
       astSubgraphs.forEach((sg) => {
         const sgId = sg.id;
@@ -69,10 +83,18 @@ export function parseMermaid(text: string): DiagramData {
           },
           zIndex: 1,
         };
+
+        const parentId = parentMap.get(sgId);
+        if (parentId) {
+          subgraphNode.parentNode = parentId;
+          subgraphNode.extent = 'parent';
+        }
+
         nodes.push(subgraphNode);
       });
     }
 
+    // 3. Create custom nodes
     if (astNodes) {
         astNodes.forEach((astNode, id) => {
           const visual = config.nodes[id] || {};
@@ -105,12 +127,10 @@ export function parseMermaid(text: string): DiagramData {
             zIndex: 10,
           };
           
-          if (astSubgraphs) {
-            const parentSg = astSubgraphs.find(sg => sg.nodes?.includes(id));
-            if (parentSg) {
-              node.parentNode = parentSg.id;
-              node.extent = 'parent';
-            }
+          const parentId = parentMap.get(id);
+          if (parentId) {
+            node.parentNode = parentId;
+            node.extent = 'parent';
           }
 
           nodes.push(node);

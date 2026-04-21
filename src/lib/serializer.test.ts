@@ -65,6 +65,34 @@ describe('buildMermaidText', () => {
     expect(result).toContain('end');
   });
 
+  it('should serialize nested subgraphs', () => {
+    const nodes: (Node<CustomNodeData> | Node<SubgraphNodeData>)[] = [
+      { id: 'SG1', position: { x: 0, y: 0 }, data: { label: 'Outer' }, type: 'subgraphNode' },
+      { id: 'SG2', position: { x: 10, y: 10 }, data: { label: 'Inner' }, type: 'subgraphNode', parentNode: 'SG1' },
+      { id: 'A', position: { x: 20, y: 20 }, data: { label: 'Deep' }, type: 'customNode', parentNode: 'SG2' },
+    ];
+    const result = buildMermaidText(nodes as any, [], 'flowchart TD');
+    
+    expect(result).toContain('subgraph SG1 ["Outer"]');
+    expect(result).toContain('subgraph SG2 ["Inner"]');
+    expect(result).toContain('A[Deep]');
+    
+    // Verify nesting structure
+    const sg1Idx = result.indexOf('subgraph SG1');
+    const sg2Idx = result.indexOf('subgraph SG2');
+    const aIdx = result.indexOf('A[Deep]');
+    
+    // The first 'end' after sg2Idx is for SG2
+    const end2Idx = result.indexOf('end', sg2Idx);
+    // The first 'end' after end2Idx (or at least after SG2's end) should be for SG1
+    const end1Idx = result.indexOf('end', end2Idx + 1);
+    
+    expect(sg1Idx).toBeLessThan(sg2Idx);
+    expect(sg2Idx).toBeLessThan(aIdx);
+    expect(aIdx).toBeLessThan(end2Idx);
+    expect(end2Idx).toBeLessThan(end1Idx);
+  });
+
   it('should include visual properties in config YAML', () => {
     const nodes: Node<CustomNodeData>[] = [
       { 

@@ -75,6 +75,33 @@ graph TD
     expect(nodeA?.parentNode).toBe('SG1');
   });
 
+  it('should parse nested subgraphs', () => {
+    const mermaid = `
+flowchart TD
+  subgraph SG1
+    subgraph SG2
+      A
+    end
+  end
+`;
+    const result = parseMermaid(mermaid);
+    
+    expect(result.success).toBe(true);
+    // Nodes: A, SG1, SG2
+    expect(result.nodes).toHaveLength(3);
+    
+    const sg1 = result.nodes.find(n => n.id === 'SG1');
+    const sg2 = result.nodes.find(n => n.id === 'SG2');
+    const nodeA = result.nodes.find(n => n.id === 'A');
+    
+    expect(sg1).toBeDefined();
+    expect(sg2).toBeDefined();
+    expect(nodeA).toBeDefined();
+    
+    expect(sg2?.parentNode).toBe('SG1');
+    expect(nodeA?.parentNode).toBe('SG2');
+  });
+
   it('should parse visual config in YAML frontmatter', () => {
     const mermaid = `---
 mermade:
